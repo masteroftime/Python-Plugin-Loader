@@ -1,9 +1,10 @@
-package org.master.bukkit.python;
+package bukkit.python;
 
 import java.io.File;
 
 import org.bukkit.plugin.java.JavaPlugin;
-import org.master.bukkit.python.PythonPluginLoader;
+
+import bukkit.python.PythonPluginLoader;
 
 public class PythonLoader extends JavaPlugin
 {

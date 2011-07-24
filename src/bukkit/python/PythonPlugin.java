@@ -1,4 +1,4 @@
-package org.master.bukkit.python;
+package bukkit.python;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -141,7 +141,7 @@ public abstract class PythonPlugin implements Plugin
      * @param file File containing this plugin
      * @param classLoader ClassLoader which holds this plugin
      */
-    protected final void initialize(PluginLoader loader, Server server,
+    public final void initialize(PluginLoader loader, Server server,
             PluginDescriptionFile description, File dataFolder, File file,
             ClassLoader classLoader) {
         if (!initialized) {

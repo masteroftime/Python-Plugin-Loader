@@ -1,4 +1,4 @@
-package org.master.bukkit.python;
+package bukkit.python;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -225,9 +226,15 @@ public class PythonPluginLoader implements PluginLoader
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			throw new InvalidPluginException(e);
+		} catch (Exception e) {
+			Logger.getLogger("Minecraft").log(Level.SEVERE, "Error loading plugin "+description.getName()+":\n"+e.toString());
 		}
 		
-		result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
+		if(result != null)
+		{
+			result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
+		}
+		else Logger.getLogger("Minecraft").log(Level.SEVERE, "Could not load "+description.getName());
 		
         return (Plugin) result;
     }
