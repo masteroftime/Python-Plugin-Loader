@@ -37,7 +37,7 @@ public class PythonLoader extends JavaPlugin
 			
 		}
 		
-		File pluginDir = new File("plugins/python");
+		File pluginDir = new File("plugins");
 		if(!pluginDir.exists()) pluginDir.mkdir();
 		
 		getServer().getPluginManager().registerInterface(PythonPluginLoader.class);

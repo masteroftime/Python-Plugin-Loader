@@ -221,8 +221,8 @@ public class PythonPluginLoader implements PluginLoader
         		interpreter = new PythonInterpreter();
         	}
 			interpreter.exec("import sys");
-			interpreter.exec("sys.path.append(\""+file.getAbsolutePath()+"\")");
-			interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath()+"\")");
+			interpreter.exec("sys.path.append(\""+file.getAbsolutePath().replace('\\', '/')+"\")");
+			interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");
 			
 			interpreter.exec("print sys.path");
 			
