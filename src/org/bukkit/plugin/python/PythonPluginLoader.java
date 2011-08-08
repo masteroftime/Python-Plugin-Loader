@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,11 +27,12 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.block.SnowFormEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreeperPowerEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
@@ -55,6 +55,7 @@ import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEggThrowEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInventoryEvent;
@@ -70,6 +71,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerVelocityEvent;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerCommandEvent;
@@ -365,6 +367,13 @@ public class PythonPluginLoader implements PluginLoader
                     ((PlayerListener) listener).onPlayerMove((PlayerMoveEvent) event);
                 }
             };
+            
+        case PLAYER_VELOCITY:
+        	return new EventExecutor() {
+        		public void execute(Listener listener, Event event) {
+        			((PlayerListener) listener).onPlayerVelocity((PlayerVelocityEvent) event);
+        		}
+        	};
 
         case PLAYER_TELEPORT:
             return new EventExecutor() {
@@ -477,6 +486,13 @@ public class PythonPluginLoader implements PluginLoader
                     ((PlayerListener) listener).onPlayerBedLeave((PlayerBedLeaveEvent) event);
                 }
             };
+            
+        case PLAYER_FISH:
+        	return new EventExecutor() {
+        		public void execute(Listener listener, Event event) {
+        			((PlayerListener) listener).onPlayerFish((PlayerFishEvent) event);
+        		}
+        	};
 
         // Block Events
         case BLOCK_PHYSICS:
@@ -556,19 +572,27 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        case SNOW_FORM:
-            return new EventExecutor() {
-                public void execute(Listener listener, Event event) {
-                    ((BlockListener) listener).onSnowForm((SnowFormEvent) event);
-                }
-            };
-
         case BLOCK_DISPENSE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
                     ((BlockListener) listener).onBlockDispense((BlockDispenseEvent) event);
                 }
             };
+            
+        case BLOCK_PISTON_RETRACT:
+        	return new EventExecutor() {
+        		public void execute(Listener listener, Event event) {
+        			((BlockListener) listener).onBlockPistonRetract((BlockPistonRetractEvent) event);
+        		}
+        	};
+
+        case BLOCK_PISTON_EXTEND:
+        	return new EventExecutor() {
+        		public void execute(Listener listener, Event event) {
+        			((BlockListener) listener).onBlockPistonExtend((BlockPistonExtendEvent) event);
+        		}
+        	};
+            	
 
         // Server Events
         case PLUGIN_ENABLE:

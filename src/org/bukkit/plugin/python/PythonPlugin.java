@@ -264,4 +264,9 @@ public abstract class PythonPlugin implements Plugin {
 
         gen.runScript(true, gen.generateDropDdl());
     }
+    
+    @Override
+    public String toString() {
+    	return getDescription().getFullName();
+    }
 }
