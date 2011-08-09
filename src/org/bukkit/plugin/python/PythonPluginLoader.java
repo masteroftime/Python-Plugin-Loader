@@ -144,7 +144,7 @@ public class PythonPluginLoader implements PluginLoader
             throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist", file.getPath())));
         }
         try {
-			ZipEntry pdfEntry = zfile.getEntry("plugin.yaml");
+			ZipEntry pdfEntry = zfile.getEntry("plugin.yml");
 			if(pdfEntry == null)
 				throw new InvalidPluginException(new NullPointerException("Missing plugin.yml"));
             InputStream pdfstream = zfile.getInputStream(pdfEntry);
@@ -222,10 +222,7 @@ public class PythonPluginLoader implements PluginLoader
         	}
 			interpreter.exec("import sys");
 			interpreter.exec("sys.path.append(\""+file.getAbsolutePath().replace('\\', '/')+"\")");
-			interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");
-			
-			interpreter.exec("print sys.path");
-			
+			interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");			
 			interpreter.execfile(zfile.getInputStream(zfile.getEntry("plugin.py")));
 			PyObject pyClass = interpreter.get(description.getMain());
 			result = (PythonPlugin)pyClass.__call__().__tojava__(PythonPlugin.class);
@@ -239,11 +236,6 @@ public class PythonPluginLoader implements PluginLoader
 		
 		if(result != null)
 		{
-			System.out.println("Loader:"+this.getClass().getClassLoader());
-			System.out.println("Plugin:"+PythonPlugin.class.getClassLoader());
-			System.out.println("PythonPlugin:"+result.getClass().getClassLoader());
-			System.out.println("PythonInterpreter:"+interpreter.getClass().getClassLoader());
-			
 			result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
 		}
 		else Logger.getLogger("Minecraft").log(Level.SEVERE, "Could not load "+description.getName());
