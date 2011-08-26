@@ -267,6 +267,6 @@ public abstract class PythonPlugin implements Plugin {
     
     @Override
     public String toString() {
-    	return getDescription().getFullName();
+        return getDescription().getFullName();
     }
 }

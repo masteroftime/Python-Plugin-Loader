@@ -111,21 +111,21 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 public class PythonPluginLoader implements PluginLoader
 {
-	private final Server server;
+    private final Server server;
     private final Pattern[] fileFilters = new Pattern[] {
         Pattern.compile("\\.pyp$"),
     };
-    
+
     private final Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
     private final HashMap<String, PluginClassLoader> loaders = new HashMap<String, PluginClassLoader>();
-    
+
     private static PythonInterpreter interpreter;
-    
+
     public PythonPluginLoader(Server server)
     {
-    	this.server = server;
+        this.server = server;
     }
-	
+
     public Plugin loadPlugin(File file) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
         return loadPlugin(file, false);
     }
@@ -133,20 +133,20 @@ public class PythonPluginLoader implements PluginLoader
     public Plugin loadPlugin(File file, boolean ignoreSoftDependencies) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
         PythonPlugin result = null;
         PluginDescriptionFile description = null;
-		ZipFile zfile = null;
-		try {
-			zfile = new ZipFile(file);
-		} catch(IOException e) {
-			throw new InvalidPluginException(e);
-		}
+        ZipFile zfile = null;
+        try {
+            zfile = new ZipFile(file);
+        } catch(IOException e) {
+            throw new InvalidPluginException(e);
+        }
 
         if (!file.exists()) {
             throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist", file.getPath())));
         }
         try {
-			ZipEntry pdfEntry = zfile.getEntry("plugin.yml");
-			if(pdfEntry == null)
-				throw new InvalidPluginException(new NullPointerException("Missing plugin.yml"));
+            ZipEntry pdfEntry = zfile.getEntry("plugin.yml");
+            if(pdfEntry == null)
+                throw new InvalidPluginException(new NullPointerException("Missing plugin.yml"));
             InputStream pdfstream = zfile.getInputStream(pdfEntry);
             description = new PluginDescriptionFile(pdfstream);
             pdfstream.close();
@@ -216,30 +216,30 @@ public class PythonPluginLoader implements PluginLoader
         }
         
         try {
-        	if(interpreter == null)
-        	{
-        		interpreter = new PythonInterpreter();
-        	}
-			interpreter.exec("import sys");
-			interpreter.exec("sys.path.append(\""+file.getAbsolutePath().replace('\\', '/')+"\")");
-			interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");			
-			interpreter.execfile(zfile.getInputStream(zfile.getEntry("plugin.py")));
-			PyObject pyClass = interpreter.get(description.getMain());
-			result = (PythonPlugin)pyClass.__call__().__tojava__(PythonPlugin.class);
-			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			throw new InvalidPluginException(e);
-		} catch (Exception e) {
-			Logger.getLogger("Minecraft").log(Level.SEVERE, "Error loading plugin "+description.getName()+":\n"+e.toString());
-		}
-		
-		if(result != null)
-		{
-			result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
-		}
-		else Logger.getLogger("Minecraft").log(Level.SEVERE, "Could not load "+description.getName());
-		
+            if(interpreter == null)
+            {
+                interpreter = new PythonInterpreter();
+            }
+            interpreter.exec("import sys");
+            interpreter.exec("sys.path.append(\""+file.getAbsolutePath().replace('\\', '/')+"\")");
+            interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");			
+            interpreter.execfile(zfile.getInputStream(zfile.getEntry("plugin.py")));
+            PyObject pyClass = interpreter.get(description.getMain());
+            result = (PythonPlugin)pyClass.__call__().__tojava__(PythonPlugin.class);
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            throw new InvalidPluginException(e);
+        } catch (Exception e) {
+            Logger.getLogger("Minecraft").log(Level.SEVERE, "Error loading plugin "+description.getName()+":\n"+e.toString());
+        }
+
+        if(result != null)
+        {
+            result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
+        }
+        else Logger.getLogger("Minecraft").log(Level.SEVERE, "Could not load "+description.getName());
+
         return (Plugin) result;
     }
 
@@ -266,13 +266,13 @@ public class PythonPluginLoader implements PluginLoader
     public Pattern[] getPluginFileFilters() {
         return fileFilters;
     }
-    
+
     public static Object getPythonObject(String pythonClass, Class<?> javaClass)
     {
-    	PyObject pyClass = interpreter.get(pythonClass);
-		return pyClass.__call__().__tojava__(javaClass);
+        PyObject pyClass = interpreter.get(pythonClass);
+        return pyClass.__call__().__tojava__(javaClass);
     }
-    
+
     public static PyObject getPythonVariable(String name)
     {
     	return interpreter.get(name);
