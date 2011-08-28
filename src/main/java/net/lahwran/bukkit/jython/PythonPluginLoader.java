@@ -48,12 +48,33 @@ import com.master.bukkit.python.PythonLoader;
 public class PythonPluginLoader implements PluginLoader {
 
     private final Server server;
+
+    /**
+     * Filter - matches all of the following, for the regex illiterate:
+     * <pre>
+     * plugin.pydir
+     * plugin.pyzip
+     * plugin.pyp
+     * plugin.pypl
+     * plugin.pyplug
+     * plugin.pyplugin
+     * plugin.py.dir
+     * plugin.py.zip
+     * plugin.py.p
+     * plugin.py.pl
+     * plugin.py.plug
+     * plugin.py.plugin
+     * </pre>
+     */
     public static final Pattern[] fileFilters = new Pattern[] {
             Pattern.compile("\\.py\\.?(dir|zip|p|pl|plug|plugin)$"),
         };
 
     private HashSet<String> loadedplugins = new HashSet<String>();
 
+    /**
+     * @param server server to initialize with
+     */
     public PythonPluginLoader(Server server) {
         this.server = server;
     }
@@ -63,6 +84,7 @@ public class PythonPluginLoader implements PluginLoader {
         return loadPlugin(file, false);
     }
 
+    @SuppressWarnings("unchecked")
     public Plugin loadPlugin(File file, boolean ignoreSoftDependencies)
             throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
         PythonPlugin result = null;
@@ -124,7 +146,7 @@ public class PythonPluginLoader implements PluginLoader {
         ArrayList<String> depend;
 
         try {
-            depend = (ArrayList) description.getDepend();
+            depend = (ArrayList<String>) description.getDepend();
             if (depend == null) {
                 depend = new ArrayList<String>();
             }
@@ -142,7 +164,7 @@ public class PythonPluginLoader implements PluginLoader {
             ArrayList<String> softDepend;
 
             try {
-                softDepend = (ArrayList) description.getSoftDepend();
+                softDepend = (ArrayList<String>) description.getSoftDepend();
                 if (softDepend == null) {
                     softDepend = new ArrayList<String>();
                 }
@@ -229,7 +251,7 @@ public class PythonPluginLoader implements PluginLoader {
 
         if (!loadedplugins.contains(description.getName()))
             loadedplugins.add(description.getName());
-        return (Plugin) result;
+        return result;
     }
 
     private boolean isPluginLoaded(String name) {

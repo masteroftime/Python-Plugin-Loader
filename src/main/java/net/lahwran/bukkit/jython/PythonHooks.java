@@ -3,6 +3,7 @@
  */
 package net.lahwran.bukkit.jython;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,26 +15,62 @@ import org.bukkit.plugin.PluginManager;
 import org.python.core.*;
 
 /**
+ * Python decorators and handler registration
  * @author lahwran
- *
  */
 public class PythonHooks {
 
+    /**
+     * Once set, no more hooks can be added
+     */
     private boolean frozen = false;
+
+    /**
+     * Function to call when plugin is being enabled
+     */
     PyFunction onEnable;
+
+    /**
+     * Function to call when plugin is being disabled
+     */
     PyFunction onDisable;
+
+    /**
+     * List of handlers to register
+     */
     ArrayList<PythonEventHandler> eventhandlers = new ArrayList<PythonEventHandler>();
+
+    /**
+     * List of handlers to register
+     */
     ArrayList<PythonCommandHandler> commandhandlers = new ArrayList<PythonCommandHandler>();
+
+    /**
+     * Plugin description to modify when registering commands
+     */
     PluginDescriptionFile plugindesc;
 
+    /**
+     * @param plugindesc Plugin description to modify when registering commands
+     */
     PythonHooks(PluginDescriptionFile plugindesc) {
         this.plugindesc = plugindesc;
     }
 
+    @SuppressWarnings("unchecked")
     private void addCommandInfo(String name, String usage, String desc, List aliases) {
         Object object = plugindesc.getCommands();
-        if (object == null)
-            throw new PyException(new PyString("error"), new PyString("Plugin commands list does not exist"));
+        if (object == null) {
+            object = new HashMap<String, HashMap<String, Object>>();
+            try {
+                Field commands = PluginDescriptionFile.class.getDeclaredField("commands");
+                commands.setAccessible(true);
+                commands.set(plugindesc, object);
+            } catch (Throwable t) {
+                t.printStackTrace();
+                throw new PyException(new PyString("error"), new PyString("Plugin commands list does not exist"));
+            }
+        }
 
         Map<String, Map<String, Object>> map = (Map<String, Map<String, Object>>) object;
 
@@ -54,49 +91,80 @@ public class PythonHooks {
         map.put(name, commandmap);
     }
 
+    /**
+     * Register everything with bukkit
+     * @param plugin plugin to do registration as
+     */
     void doRegistrations(PythonPlugin plugin) {
         frozen = true;
-        registerListenerEvents(plugin);
-        registerHandlerCommands(plugin);
-    }
-    private void registerListenerEvents(PythonPlugin plugin) {
         PluginManager pm = plugin.getServer().getPluginManager();
         for (int i=0; i<eventhandlers.size(); i++) {
             eventhandlers.get(i).register(pm, plugin);
         }
-    }
-
-    private void registerHandlerCommands(PythonPlugin plugin) {
         for (int i=0; i<commandhandlers.size(); i++) {
             commandhandlers.get(i).register(plugin);
         }
     }
-    
+
+    /**
+     * Check if we're allowed to register stuff, and if not, throw an exception
+     */
     private void checkFrozen() {
         if (frozen)
             throw new PyException(new PyString("error"), new PyString("Cannot register handlers when frozen"));
     }
-    
+
+    /**
+     * Register an event. python-facing.
+     * @param handler Function handler
+     * @param type event type
+     * @param priority event priority
+     */
     public void registerEvent(PyFunction handler, Event.Type type, Event.Priority priority) {
         checkFrozen();
         PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
         eventhandlers.add(wrapper);
     }
+
+    /**
+     * Register an event. python-facing. this version converts from string info.
+     * @param handler function handler
+     * @param type Event type string
+     * @param priority Event priority string
+     */
     public void registerEvent(PyFunction handler, PyString type, PyString priority) {
         Event.Type realtype = Event.Type.valueOf(type.upper());
         Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
         registerEvent(handler, realtype, realpriority);
     }
 
+    /**
+     * Register a command with no extra metadata
+     * @param func function to set as handler
+     * @param name name to register
+     */
     public void registerCommand(PyFunction func, String name) {
         registerCommand(func, name, null, null, null);
     }
 
+    /**
+     * Register a command with no extra metadata
+     * @param func function to set as handler; function's name is used as command name
+     */
     public void registerCommand(PyFunction func) {
         registerCommand(func, null);
     }
 
-    public void registerCommand(PyFunction func, String name, String usage, String desc, List aliases) {
+
+    /**
+     * Register a command with no extra metadata
+     * @param func function to set as handler
+     * @param name name to use 
+     * @param usage metadata
+     * @param desc metadata
+     * @param aliases metadata
+     */
+    public void registerCommand(PyFunction func, String name, String usage, String desc, List<?> aliases) {
         checkFrozen();
         String finalname = name;
         if (finalname == null)
@@ -106,16 +174,42 @@ public class PythonHooks {
         commandhandlers.add(handler);
     }
 
+    /**
+     * Python decorator. functions decorated with this are called on enable
+     * <pre>
+     * @hook.enable
+     * def enable():
+     *     print "enabled!"
+     * </pre>
+     * @param func function to decorate
+     * @return decorated function
+     */
     public PyFunction enable(PyFunction func) {
         onEnable = func;
         return func;
     }
 
+    /**
+     * Python decorator. functions decorated with this are called on disable
+     * <pre>
+     * @hook.disable
+     * def disable():
+     *     print "enabled!"
+     * </pre>
+     * @param func function to decorate
+     * @return decorated function
+     */
     public PyFunction disable(PyFunction func) {
         onDisable = func;
         return func;
     }
 
+    /**
+     * Python decorator. functions decorated with this are called as event handlers
+     * @param type event type
+     * @param priority event priority
+     * @return decorated function
+     */
     public PyObject event(final Event.Type type, final Event.Priority priority) {
         return new PyObject() {
             public PyObject __call__(PyObject func) {
@@ -125,6 +219,13 @@ public class PythonHooks {
         };
     }
 
+
+    /**
+     * Python decorator. functions decorated with this are called as event handlers
+     * @param type event type
+     * @param priority event priority
+     * @return decorated function
+     */
     public PyObject event(final PyString type, final PyString priority) {
         return new PyObject() {
             public PyObject __call__(PyObject func) {
@@ -134,6 +235,12 @@ public class PythonHooks {
         };
     }
 
+
+    /**
+     * Python decorator. functions decorated with this are called as event handlers. uses normal priority.
+     * @param type event type
+     * @return decorated function
+     */
     public PyObject event(final PyString type) {
         return new PyObject() {
             public PyObject __call__(PyObject func) {
@@ -154,9 +261,9 @@ public class PythonHooks {
      *             registerFunc(func, arg1 if arg1 else func.func_name, usage, desc, aliases)
      * </pre>
      * the literally equivalent python looks so similar to the actual code as to not be worth mentioning
-     * @param args
-     * @param keywords
-     * @return
+     * @param args jython magic
+     * @param keywords jython magic
+     * @return jython magic
      */
     public PyObject command(PyObject args[], String keywords[]) {
         int kwdelta = args.length - keywords.length;
@@ -167,7 +274,7 @@ public class PythonHooks {
 
             String desc = null;
             String usage = null;
-            List aliases = null;
+            List<?> aliases = null;
             for (int i = kwdelta; i < args.length; i++) {
                 String keyword = keywords[i - kwdelta];
                 if (keyword.equals("desc") || keyword.equals("description"))
@@ -184,7 +291,7 @@ public class PythonHooks {
                 name = null;
             final String finaldesc = desc;
             final String finalusage = usage;
-            final List finalaliases = aliases;
+            final List<?> finalaliases = aliases;
             return new PyObject() {
                 public PyObject __call__(PyObject func) {
                     registerCommand((PyFunction) func, name, finalusage, finaldesc, finalaliases);

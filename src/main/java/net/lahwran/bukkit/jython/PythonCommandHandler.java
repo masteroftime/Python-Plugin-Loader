@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.lahwran.bukkit.jython;
 
 import org.bukkit.command.Command;
@@ -11,19 +8,26 @@ import org.python.core.*;
 
 
 /**
+ * Class to wrap python functions so that they can be used to handle commands
  * @author lahwran
- *
  */
 public class PythonCommandHandler implements CommandExecutor {
 
-    final PyFunction func;
-    final String name;
+    private final PyFunction func;
+    private final String name;
 
+    /**
+     * @param func function to handle
+     * @param name name of command to use when registering
+     */
     public PythonCommandHandler(PyFunction func, String name) {
         this.func = func;
         this.name = name;
     }
 
+    /**
+     * @param pythonPlugin plugin to register command to
+     */
     void register(PythonPlugin pythonPlugin) {
         PluginCommand command = pythonPlugin.getCommand(name);
         if (command == null)

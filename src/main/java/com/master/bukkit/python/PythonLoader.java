@@ -1,6 +1,5 @@
 package com.master.bukkit.python;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,15 +12,22 @@ import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.java.JavaPluginLoader;
-import org.bukkit.plugin.java.PluginClassLoader;
 
-
+/**
+ * Java plugin to initialize python plugin loader and provide it with a little moral boost.
+ * @author masteroftime
+ * @author lahwran
+ *
+ */
 public class PythonLoader extends JavaPlugin {
 
     private static Map<Pattern, PluginLoader> fileAssociations = null;
     private static JavaPluginLoader javapluginloader = null;
     private static Map<String, ?> javaLoaders = null;
 
+    /**
+     * Initialize and load up the plugin loader.
+     */
     public PythonLoader() {
         System.out.println("PythonLoader: initializing");
         // This must occur as early as possible, and only once.
@@ -50,10 +56,11 @@ public class PythonLoader extends JavaPlugin {
      * @param errorstr string to print if we fail when we print reason we failed
      * @return fileAssociations map
      */
+    @SuppressWarnings("unchecked")
     private static Map<Pattern, PluginLoader> getFileAssociations(PluginManager pm, String errorstr) {
         if (fileAssociations != null)
             return fileAssociations;
-        Class pmclass = null;
+        Class<?> pmclass = null;
         try {
             pmclass = Class.forName("org.bukkit.plugin.SimplePluginManager");
         } catch (ClassNotFoundException e) {
@@ -95,8 +102,8 @@ public class PythonLoader extends JavaPlugin {
 
     /**
      * Retrieve JavaPluginLoader from SimplePluginManager file associations
-     * @param pm
-     * @return
+     * @param pm plugin manager
+     * @return java plugin loader if found
      */
     public static JavaPluginLoader getJavaPluginLoader(PluginManager pm) {
         if (javapluginloader != null)
@@ -117,6 +124,7 @@ public class PythonLoader extends JavaPlugin {
      * @param pm plugin manager to search for JavaPluginLoader in (if necessary)
      * @return loaders field retrieved
      */
+    @SuppressWarnings("unchecked")
     private static Map<String, ?> getJavaLoaders(PluginManager pm) {
         if (javaLoaders != null)
             return javaLoaders;

@@ -5,32 +5,20 @@ package net.lahwran.bukkit.jython;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.event.Event;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
-import org.python.core.Py;
-import org.python.core.PyFunction;
-import org.python.core.PyObject;
-import org.python.core.PyString;
 import org.python.util.PythonInterpreter;
 
 import com.avaje.ebean.EbeanServer;
-import com.avaje.ebean.EbeanServerFactory;
-import com.avaje.ebean.config.DataSourceConfig;
-import com.avaje.ebean.config.ServerConfig;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
 import com.avaje.ebeaninternal.server.ddl.DdlGenerator;
 
@@ -51,31 +39,26 @@ private boolean isEnabled = false;
     private boolean naggable = true;
     private EbeanServer ebean = null;
 
+    /**
+     * Listener to handle all PythonHooks events for this plugin.
+     */
     PythonListener listener = new PythonListener();
+
+    /**
+     * PythonHooks registered on startup.
+     */
     PythonHooks hooks;
+
+    /**
+     * interpreter that was used to load this plugin.
+     */
     PythonInterpreter interp;
-
-    /*static class TypeAndPriority {
-        final Event.Type type;
-        final Event.Priority priority;
-        TypeAndPriority(Event.Type type, Event.Priority priority) {
-            this.type = type;
-            this.priority = priority;
-        }
-
-        public int hashCode() {
-            
-            return type.ordinal() + (priority.ordinal() << 10);
-        }
-    }*/
-
-    public PythonPlugin() {}
 
     /**
      * Returns the folder that the plugin data's files are located in. The
-     * folder may not yet exist.
+     * folder might not yet exist.
      *
-     * @return
+     * @return data folder
      */
     public File getDataFolder() {
         return dataFolder;
@@ -132,20 +115,11 @@ private boolean isEnabled = false;
      * does not exist and it cannot be loaded, no error will be emitted and
      * the configuration file will have no values.
      *
-     * @return
+     * @return config
      */
     public Configuration getConfiguration() {
         return config;
     }
-
-    /**
-     * Returns the ClassLoader which holds this plugin
-     *
-     * @return ClassLoader holding this plugin
-     */
-    //protected ClassLoader getClassLoader() {
-    //    return classLoader;
-    //}
 
     /**
      * Sets the enabled state of this plugin
@@ -227,11 +201,11 @@ private boolean isEnabled = false;
         return new ArrayList<Class<?>>();
     }
 
-    private String replaceDatabaseString(String input) {
-        input = input.replaceAll("\\{DIR\\}", getDataFolder().getPath().replaceAll("\\\\", "/") + "/");
-        input = input.replaceAll("\\{NAME\\}", getDescription().getName().replaceAll("[^\\w_-]", ""));
-        return input;
-    }
+//    private String replaceDatabaseString(String input) {
+//        input = input.replaceAll("\\{DIR\\}", getDataFolder().getPath().replaceAll("\\\\", "/") + "/");
+//        input = input.replaceAll("\\{NAME\\}", getDescription().getName().replaceAll("[^\\w_-]", ""));
+//        return input;
+//    }
 
     /**
      * Gets the initialization status of this plugin
@@ -270,7 +244,10 @@ private boolean isEnabled = false;
         }
     }
 
-    public void onLoad() {} // Empty!
+    /**
+     * Overridable, is called after all plugins have been instantiated.
+     */
+    public void onLoad() {}
 
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         getServer().getLogger().severe("Plugin " + getDescription().getFullName() + " does not contain any generators that may be used in the default world!");

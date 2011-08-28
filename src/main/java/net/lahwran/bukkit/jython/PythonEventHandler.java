@@ -10,21 +10,47 @@ import org.bukkit.plugin.PluginManager;
 import org.python.core.PyFunction;
 
 /**
+ * Class to wrap python functions so they can be used to handle events
  * @author lahwran
  *
  */
 class PythonEventHandler {
+    /**
+     * Python function to call
+     */
     final PyFunction handler;
+
+    /**
+     * Event type this handler is listening for
+     */
     final Event.Type type;
+
+    /**
+     * Priority to register the handler at
+     */
     final Event.Priority priority;
+
+    /**
+     * Whether we've registered yet
+     */
     boolean currentlyRegistered = false;
 
+    /**
+     * @param handler Python function to call
+     * @param type Event type this handler is listening for
+     * @param priority Priority to register the handler at
+     */
     PythonEventHandler(PyFunction handler, Event.Type type, Event.Priority priority) {
         this.handler = handler;
         this.type = type;
         this.priority = priority;
     }
 
+    /**
+     * Register the handler with the event manager
+     * @param pm plugin manager to register with
+     * @param plugin plugin to register as
+     */
     void register(PluginManager pm, PythonPlugin plugin) {
         try {
             if (currentlyRegistered)
