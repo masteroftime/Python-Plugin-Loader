@@ -51,16 +51,9 @@ private boolean isEnabled = false;
     private boolean naggable = true;
     private EbeanServer ebean = null;
 
-    private PyFunction onEnable;
-    private PyFunction onDisable;
-
     PythonListener listener = new PythonListener();
-    ArrayList<PythonEventHandler> eventhandlers = new ArrayList<PythonEventHandler>();
-    ArrayList<PythonCommandHandler> commandhandlers = new ArrayList<PythonCommandHandler>();
-
-    boolean delayRegistrations = true;
-
-    //PythonInterpreter interp = new PythonInterpreter();
+    PythonHooks hooks;
+    PythonInterpreter interp;
 
     /*static class TypeAndPriority {
         final Event.Type type;
@@ -164,8 +157,13 @@ private boolean isEnabled = false;
             isEnabled = enabled;
 
             if (isEnabled) {
+                if (hooks.onEnable != null)
+                    hooks.onEnable.__call__();
+                hooks.doRegistrations(this);
                 onEnable();
             } else {
+                if (hooks.onDisable != null)
+                    hooks.onDisable.__call__();
                 onDisable();
             }
         }
@@ -310,98 +308,14 @@ private boolean isEnabled = false;
         return getDescription().getFullName();
     }
 
-    public void onEnable() {
-        onEnable.__call__();
-        delayRegistrations = false;
-        registerListenerEvents();
-        registerHandlerCommands();
-    }
+    public void onEnable() { }
 
-    public void onDisable() {
-        onDisable.__call__();
-        delayRegistrations = true;
-    }
+    public void onDisable() { }
 
 
-    private void registerListenerEvents() {
-        PluginManager pm = getServer().getPluginManager();
-        for (int i=0; i<eventhandlers.size(); i++) {
-            eventhandlers.get(i).register(pm, this);
-        }
-    }
-
-    private void registerHandlerCommands() {
-        for (int i=0; i<commandhandlers.size(); i++) {
-            commandhandlers.get(i).register(this);
-        }
-    }
-
-    public void registerEvent(PyFunction handler, Event.Type type, Event.Priority priority) {
-        PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
-        eventhandlers.add(wrapper);
-        if (!delayRegistrations) {
-            wrapper.register(getServer().getPluginManager(), this);
-        }
-    }
-
-    public void registerEvent(PyFunction handler, PyString type, PyString priority) {
-        Event.Type realtype = Event.Type.valueOf(type.upper());
-        Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
-        registerEvent(handler, realtype, realpriority);
-    }
-
-    public void registerCommand(PyFunction func, String name) {
-        PythonCommandHandler handler = new PythonCommandHandler(func, name);
-        commandhandlers.add(handler);
-        if (!delayRegistrations) {
-            handler.register(this);
-        }
-    }
-
-    public PyFunction enable(PyFunction func) {
-        onEnable = func;
-        return func;
-    }
-
-    public PyFunction disable(PyFunction func) {
-        onDisable = func;
-        return func;
-    }
-
-    public PyObject event(final Event.Type type, final Event.Priority priority) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, priority);
-                return func;
-            }
-        };
-    }
-
-    public PyObject event(final PyString type, final PyString priority) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, priority);
-                return func;
-            }
-        };
-    }
-
-    public PyObject event(final PyString type) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, new PyString("Normal"));
-                return func;
-            }
-        };
-    }
 
 
-    public PyObject command(final String name) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                registerCommand((PyFunction) func, name);
-                return func;
-            }
-        };
-    }
+
+
+
 }

@@ -109,43 +109,42 @@ import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
 
-public class PythonPluginLoader implements PluginLoader
-{
+public class PythonPluginLoader implements PluginLoader {
     private final Server server;
-    private final Pattern[] fileFilters = new Pattern[] {
-        Pattern.compile("\\.pyp$"),
-    };
+    private final Pattern[] fileFilters = new Pattern[] { Pattern.compile("\\.pyp$"), };
 
     private final Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
     private final HashMap<String, PluginClassLoader> loaders = new HashMap<String, PluginClassLoader>();
 
     private static PythonInterpreter interpreter;
 
-    public PythonPluginLoader(Server server)
-    {
+    public PythonPluginLoader(Server server) {
         this.server = server;
     }
 
-    public Plugin loadPlugin(File file) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+    public Plugin loadPlugin(File file) throws InvalidPluginException, InvalidDescriptionException,
+            UnknownDependencyException {
         return loadPlugin(file, false);
     }
 
-    public Plugin loadPlugin(File file, boolean ignoreSoftDependencies) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+    public Plugin loadPlugin(File file, boolean ignoreSoftDependencies)
+            throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
         PythonPlugin result = null;
         PluginDescriptionFile description = null;
         ZipFile zfile = null;
         try {
             zfile = new ZipFile(file);
-        } catch(IOException e) {
+        } catch (IOException e) {
             throw new InvalidPluginException(e);
         }
 
         if (!file.exists()) {
-            throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist", file.getPath())));
+            throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist",
+                    file.getPath())));
         }
         try {
             ZipEntry pdfEntry = zfile.getEntry("plugin.yml");
-            if(pdfEntry == null)
+            if (pdfEntry == null)
                 throw new InvalidPluginException(new NullPointerException("Missing plugin.yml"));
             InputStream pdfstream = zfile.getInputStream(pdfEntry);
             description = new PluginDescriptionFile(pdfstream);
@@ -160,12 +159,10 @@ public class PythonPluginLoader implements PluginLoader
         //File oldDataFolder = getDataFolder(file);
 
         if (dataFolder.exists() && !dataFolder.isDirectory()) {
-            throw new InvalidPluginException(new Exception(String.format(
-                "Projected datafolder: '%s' for %s (%s) exists and is not a directory",
-                dataFolder,
-                description.getName(),
-                file
-            )));
+            throw new InvalidPluginException(new Exception(String.format("Projected datafolder: '%s' for %s (%s) exists and is not a directory",
+                    dataFolder,
+                    description.getName(),
+                    file)));
         }
 
         ArrayList<String> depend;
@@ -179,7 +176,6 @@ public class PythonPluginLoader implements PluginLoader
             throw new InvalidPluginException(ex);
         }
 
-        
         for (String pluginName : depend) {
             if (loaders == null) {
                 throw new UnknownDependencyException(pluginName);
@@ -214,31 +210,38 @@ public class PythonPluginLoader implements PluginLoader
                 }
             }
         }
-        
+
         try {
-            if(interpreter == null)
-            {
+            if (interpreter == null) {
                 interpreter = new PythonInterpreter();
             }
             interpreter.exec("import sys");
-            interpreter.exec("sys.path.append(\""+file.getAbsolutePath().replace('\\', '/')+"\")");
-            interpreter.exec("sys.path.append(\""+dataFolder.getAbsolutePath().replace('\\', '/')+"\")");			
+            interpreter.exec("sys.path.append(\"" + file.getAbsolutePath().replace('\\', '/')
+                    + "\")");
+            interpreter.exec("sys.path.append(\"" + dataFolder.getAbsolutePath().replace('\\', '/')
+                    + "\")");
             interpreter.execfile(zfile.getInputStream(zfile.getEntry("plugin.py")));
             PyObject pyClass = interpreter.get(description.getMain());
-            result = (PythonPlugin)pyClass.__call__().__tojava__(PythonPlugin.class);
+            result = (PythonPlugin) pyClass.__call__().__tojava__(PythonPlugin.class);
 
         } catch (IOException e) {
             // TODO Auto-generated catch block
             throw new InvalidPluginException(e);
         } catch (Exception e) {
-            Logger.getLogger("Minecraft").log(Level.SEVERE, "Error loading plugin "+description.getName()+":\n"+e.toString());
+            Logger.getLogger("Minecraft").log(Level.SEVERE,
+                    "Error loading plugin " + description.getName() + ":\n" + e.toString());
         }
 
-        if(result != null)
-        {
-            result.initialize(this, server, description, dataFolder, file, ClassLoader.getSystemClassLoader());
-        }
-        else Logger.getLogger("Minecraft").log(Level.SEVERE, "Could not load "+description.getName());
+        if (result != null) {
+            result.initialize(this,
+                    server,
+                    description,
+                    dataFolder,
+                    file,
+                    ClassLoader.getSystemClassLoader());
+        } else
+            Logger.getLogger("Minecraft").log(Level.SEVERE,
+                    "Could not load " + description.getName());
 
         return (Plugin) result;
     }
@@ -267,15 +270,13 @@ public class PythonPluginLoader implements PluginLoader
         return fileFilters;
     }
 
-    public static Object getPythonObject(String pythonClass, Class<?> javaClass)
-    {
+    public static Object getPythonObject(String pythonClass, Class<?> javaClass) {
         PyObject pyClass = interpreter.get(pythonClass);
         return pyClass.__call__().__tojava__(javaClass);
     }
 
-    public static PyObject getPythonVariable(String name)
-    {
-    	return interpreter.get(name);
+    public static PyObject getPythonVariable(String name) {
+        return interpreter.get(name);
     }
 
     /*
@@ -359,13 +360,13 @@ public class PythonPluginLoader implements PluginLoader
                     ((PlayerListener) listener).onPlayerMove((PlayerMoveEvent) event);
                 }
             };
-            
+
         case PLAYER_VELOCITY:
-        	return new EventExecutor() {
-        		public void execute(Listener listener, Event event) {
-        			((PlayerListener) listener).onPlayerVelocity((PlayerVelocityEvent) event);
-        		}
-        	};
+            return new EventExecutor() {
+                public void execute(Listener listener, Event event) {
+                    ((PlayerListener) listener).onPlayerVelocity((PlayerVelocityEvent) event);
+                }
+            };
 
         case PLAYER_TELEPORT:
             return new EventExecutor() {
@@ -478,15 +479,15 @@ public class PythonPluginLoader implements PluginLoader
                     ((PlayerListener) listener).onPlayerBedLeave((PlayerBedLeaveEvent) event);
                 }
             };
-            
-        case PLAYER_FISH:
-        	return new EventExecutor() {
-        		public void execute(Listener listener, Event event) {
-        			((PlayerListener) listener).onPlayerFish((PlayerFishEvent) event);
-        		}
-        	};
 
-        // Block Events
+        case PLAYER_FISH:
+            return new EventExecutor() {
+                public void execute(Listener listener, Event event) {
+                    ((PlayerListener) listener).onPlayerFish((PlayerFishEvent) event);
+                }
+            };
+
+            // Block Events
         case BLOCK_PHYSICS:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -570,23 +571,22 @@ public class PythonPluginLoader implements PluginLoader
                     ((BlockListener) listener).onBlockDispense((BlockDispenseEvent) event);
                 }
             };
-            
+
         case BLOCK_PISTON_RETRACT:
-        	return new EventExecutor() {
-        		public void execute(Listener listener, Event event) {
-        			((BlockListener) listener).onBlockPistonRetract((BlockPistonRetractEvent) event);
-        		}
-        	};
+            return new EventExecutor() {
+                public void execute(Listener listener, Event event) {
+                    ((BlockListener) listener).onBlockPistonRetract((BlockPistonRetractEvent) event);
+                }
+            };
 
         case BLOCK_PISTON_EXTEND:
-        	return new EventExecutor() {
-        		public void execute(Listener listener, Event event) {
-        			((BlockListener) listener).onBlockPistonExtend((BlockPistonExtendEvent) event);
-        		}
-        	};
-            	
+            return new EventExecutor() {
+                public void execute(Listener listener, Event event) {
+                    ((BlockListener) listener).onBlockPistonExtend((BlockPistonExtendEvent) event);
+                }
+            };
 
-        // Server Events
+            // Server Events
         case PLUGIN_ENABLE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -608,7 +608,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // World Events
+            // World Events
         case CHUNK_LOAD:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -644,7 +644,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // Painting Events
+            // Painting Events
         case PAINTING_PLACE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -659,7 +659,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // Entity Events
+            // Entity Events
         case ENTITY_DAMAGE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -730,7 +730,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // Vehicle Events
+            // Vehicle Events
         case VEHICLE_CREATE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -794,7 +794,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // Weather Events
+            // Weather Events
         case WEATHER_CHANGE:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -816,7 +816,7 @@ public class PythonPluginLoader implements PluginLoader
                 }
             };
 
-        // Custom Events
+            // Custom Events
         case CUSTOM_EVENT:
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -836,16 +836,19 @@ public class PythonPluginLoader implements PluginLoader
         if (!plugin.isEnabled()) {
             PythonPlugin pPlugin = (PythonPlugin) plugin;
 
-//            String pluginName = pPlugin.getDescription().getName();
-/*
-            if (!loaders.containsKey(pluginName)) {
-                loaders.put(pluginName, (PluginClassLoader) jPlugin.getClassLoader());
-            }
-*/
+            //            String pluginName = pPlugin.getDescription().getName();
+            /*
+                        if (!loaders.containsKey(pluginName)) {
+                            loaders.put(pluginName, (PluginClassLoader) jPlugin.getClassLoader());
+                        }
+            */
             try {
                 pPlugin.setEnabled(true);
             } catch (Throwable ex) {
-                server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getDescription().getFullName() + " (Is it up to date?): " + ex.getMessage(), ex);
+                server.getLogger().log(Level.SEVERE,
+                        "Error occurred while enabling " + plugin.getDescription().getFullName()
+                                + " (Is it up to date?): " + ex.getMessage(),
+                        ex);
             }
 
             // Perhaps abort here, rather than continue going, but as it stands,
@@ -866,21 +869,24 @@ public class PythonPluginLoader implements PluginLoader
             try {
                 pPlugin.setEnabled(false);
             } catch (Throwable ex) {
-                server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + plugin.getDescription().getFullName() + " (Is it up to date?): " + ex.getMessage(), ex);
+                server.getLogger().log(Level.SEVERE,
+                        "Error occurred while disabling " + plugin.getDescription().getFullName()
+                                + " (Is it up to date?): " + ex.getMessage(),
+                        ex);
             }
 
             server.getPluginManager().callEvent(new PluginDisableEvent(plugin));
-/*
-            loaders.remove(jPlugin.getDescription().getName());
+            /*
+                        loaders.remove(jPlugin.getDescription().getName());
 
-            if (cloader instanceof PluginClassLoader) {
-                PluginClassLoader loader = (PluginClassLoader) cloader;
-                Set<String> names = loader.getClasses();
+                        if (cloader instanceof PluginClassLoader) {
+                            PluginClassLoader loader = (PluginClassLoader) cloader;
+                            Set<String> names = loader.getClasses();
 
-                for (String name : names) {
-                    classes.remove(name);
-                }
-            }*/
+                            for (String name : names) {
+                                classes.remove(name);
+                            }
+                        }*/
         }
     }
 }

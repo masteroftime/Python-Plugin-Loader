@@ -3,6 +3,7 @@ package com.master.bukkit.python;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import net.lahwran.bukkit.jython.PythonPluginLoader;
@@ -11,9 +12,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.JavaPluginLoader;
+import org.bukkit.plugin.java.PluginClassLoader;
 
 
 public class PythonLoader extends JavaPlugin {
+
+    private static Map<Pattern, PluginLoader> fileAssociations = null;
+    private static JavaPluginLoader javapluginloader = null;
+    private static Map<String, ?> javaLoaders = null;
 
     public PythonLoader() {
         System.out.println("PythonLoader: initializing");
@@ -22,6 +29,31 @@ public class PythonLoader extends JavaPlugin {
         boolean needsload = true;
 
         String errorstr = "cannot ensure that the python loader class is not loaded twice!";
+        getFileAssociations(pm, errorstr);
+
+        if (fileAssociations != null) {
+            PluginLoader loader = fileAssociations.get(PythonPluginLoader.fileFilters[0]);
+            if (loader != null) // already loaded
+                needsload = false;
+        }
+
+        if (needsload) {
+            System.out.println("PythonLoader: loading into bukkit");
+            pm.registerInterface(PythonPluginLoader.class);
+            pm.registerInterface(org.bukkit.plugin.python.PythonPluginLoader.class);
+        }
+    }
+
+    /**
+     * Retrieve SimplePluginManager.fileAssociations. inform the user if they're too cool for us
+     * (ie, they're using a different plugin manager)
+     * @param pm PluginManager to attempt to retrieve fileAssociations from
+     * @param errorstr string to print if we fail when we print reason we failed
+     * @return fileAssociations map
+     */
+    private static Map<Pattern, PluginLoader> getFileAssociations(PluginManager pm, String errorstr) {
+        if (fileAssociations != null)
+            return fileAssociations;
         Class pmclass = null;
         try {
             pmclass = Class.forName("org.bukkit.plugin.SimplePluginManager");
@@ -47,7 +79,6 @@ public class PythonLoader extends JavaPlugin {
             }
         }
 
-        Map<Pattern, PluginLoader> fileAssociations = null;
         if (fieldFileAssociations != null) {
             try {
                 fieldFileAssociations.setAccessible(true);
@@ -60,62 +91,72 @@ public class PythonLoader extends JavaPlugin {
                 t.printStackTrace();
             }
         }
+        return fileAssociations;
+    }
 
-        if (fileAssociations != null) {
-            PluginLoader loader = fileAssociations.get(PythonPluginLoader.fileFilters[0]);
-            if (loader != null) // already loaded
-                needsload = false;
+    /**
+     * Retrieve JavaPluginLoader from 
+     * @param pm
+     * @return
+     */
+    public static JavaPluginLoader getJavaPluginLoader(PluginManager pm) {
+        if (javapluginloader != null)
+            return javapluginloader;
+
+        getFileAssociations(pm, null);
+        
+        for (Entry<Pattern, PluginLoader> entry : fileAssociations.entrySet()) {
+            if (entry.getKey().pattern().equals("\\.jar$"))
+                javapluginloader = (JavaPluginLoader) entry.getValue();
         }
 
-        if (needsload) {
-            System.out.println("PythonLoader: loading into bukkit");
-            pm.registerInterface(PythonPluginLoader.class);
-            pm.registerInterface(org.bukkit.plugin.python.PythonPluginLoader.class);
-        }
+        return javapluginloader;
     }
 
-    private void printerr(String cause, String issue) {
-        System.err.println("PythonLoader: "+cause+", "+issue);
-    }
-    
-    @Override
-    public void onDisable() {
+    /**
+     * Retrieve loaders field from JavaPluginLoader instance
+     * @param pm plugin manager to search for JavaPluginLoader in (if necessary)
+     * @return loaders field retrieved
+     */
+    private static Map<String, ?> getJavaLoaders(PluginManager pm) {
+        if (javaLoaders != null)
+            return javaLoaders;
 
-    }
+        getJavaLoaders(pm);
+        if (javapluginloader == null)
+            return null;
 
-    @Override
-    public void onEnable() {
-        /*System.out.println("Enabling Python Plugin loader.");
-
-        //load all plugin classes that they are managed by the same plugin loader
         try {
-            Class.forName("org.bukkit.plugin.python.PythonPlugin");
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            Field fieldLoaders = JavaPluginLoader.class.getDeclaredField("loaders");
+            fieldLoaders.setAccessible(true);
+
+            javaLoaders = (Map<String, ?>) fieldLoaders.get(javapluginloader);
+            return javaLoaders;
+        } catch (Throwable t) {
+            t.printStackTrace();
+            return null;
         }
-        try {
-            int i = 1;
-            while (true) {
-                Class.forName("org.bukkit.plugin.python.PythonPluginLoader$" + i);
-                i++;
-            }
-        } catch (ClassNotFoundException e) {
-
-        }
-
-        File pluginDir = new File("plugins");
-        if (!pluginDir.exists())
-            pluginDir.mkdir();
-
-        getServer().getPluginManager().registerInterface(PythonPluginLoader.class);
-        getServer().getPluginManager().loadPlugins(pluginDir);
-
-        for (Plugin p : getServer().getPluginManager().getPlugins()) {
-            if (p instanceof PythonPlugin) {
-                getServer().getPluginManager().enablePlugin(p);
-            }
-        }*/
     }
+
+    /**
+     * Use JavaPluginLoader.loaders field to determine if JavaPluginLoader has loaded a plugin (false if unable to determine)
+     * @param pm plugin manager to retrieve JavaPluginLoader instance from, if necessary
+     * @param name name of plugin to search for
+     * @return whether plugin is loaded
+     */
+    public static boolean isJavaPluginLoaded(PluginManager pm, String name) {
+        getJavaLoaders(pm);
+        if (javaLoaders == null)
+            return false;
+        return javaLoaders.containsKey(name);
+    }
+
+    private static void printerr(String cause, String issue) {
+        if (issue != null)
+            System.err.println("PythonLoader: "+cause+", "+issue);
+    }
+
+    public void onDisable() {}
+    public void onEnable() {}
 
 }

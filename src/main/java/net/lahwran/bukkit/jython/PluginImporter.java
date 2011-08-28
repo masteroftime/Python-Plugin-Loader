@@ -1,6 +1,3 @@
-/**
- * 
- */
 package net.lahwran.bukkit.jython;
 
 import java.io.File;
@@ -18,6 +15,9 @@ import org.python.core.PyTuple;
 import org.python.modules.imp;
 
 /**
+ * Unfinished importer to separate plugins into their own namespaces, possibly also import
+ * java plugins
+ * 
  * @author lahwran
  *
  */
