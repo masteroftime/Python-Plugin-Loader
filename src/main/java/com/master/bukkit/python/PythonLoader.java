@@ -40,7 +40,6 @@ public class PythonLoader extends JavaPlugin {
         if (needsload) {
             System.out.println("PythonLoader: loading into bukkit");
             pm.registerInterface(PythonPluginLoader.class);
-            pm.registerInterface(org.bukkit.plugin.python.PythonPluginLoader.class);
         }
     }
 
@@ -95,7 +94,7 @@ public class PythonLoader extends JavaPlugin {
     }
 
     /**
-     * Retrieve JavaPluginLoader from 
+     * Retrieve JavaPluginLoader from SimplePluginManager file associations
      * @param pm
      * @return
      */
