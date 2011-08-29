@@ -10,7 +10,7 @@ Issues
 3. errors while a plugin is initializing will result in an uninitialized plugin being loaded into bukkit
 4. backslashes and python string special characters in the plugin's file name will result in an error while loading the plugin
 5. the data folder is added to the pythonpath
-6. a single PythonInterpreter is used for all plugins, which means they share the same globals
+6. a single PythonInterpreter is used for all plugins, which means they share the same globals - all kinds of havoc, hard-to-pin-down errors, plugin-to-plugin sabotage, and other fun can come of this
 7. entirely copies JavaPluginLoader's eventexecutor creation - which means it will have to be updated each time an event is added!
 
 fixes

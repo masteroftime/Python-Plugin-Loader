@@ -14,6 +14,8 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.python.core.*;
 
+import com.master.bukkit.python.ReflectionHelper;
+
 /**
  * Python decorators and handler registration
  * @author lahwran
@@ -63,9 +65,7 @@ public class PythonHooks {
         if (object == null) {
             object = new HashMap<String, HashMap<String, Object>>();
             try {
-                Field commands = PluginDescriptionFile.class.getDeclaredField("commands");
-                commands.setAccessible(true);
-                commands.set(plugindesc, object);
+                ReflectionHelper.setPrivateValue(plugindesc, "commands", object);
             } catch (Throwable t) {
                 t.printStackTrace();
                 throw new PyException(new PyString("error"), new PyString("Plugin commands list does not exist"));

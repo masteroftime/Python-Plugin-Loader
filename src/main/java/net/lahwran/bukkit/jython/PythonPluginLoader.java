@@ -11,6 +11,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -38,6 +40,7 @@ import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
 
 import com.master.bukkit.python.PythonLoader;
+import com.master.bukkit.python.ReflectionHelper;
 
 /**
  * A jython plugin loader. depends on JavaPluginLoader and SimplePluginManager.
@@ -67,7 +70,7 @@ public class PythonPluginLoader implements PluginLoader {
      * </pre>
      */
     public static final Pattern[] fileFilters = new Pattern[] {
-            Pattern.compile("\\.py\\.?(dir|zip|p|pl|plug|plugin)$"),
+            Pattern.compile("^(.*)\\.py\\.?(dir|zip|p|pl|plug|plugin)$"),
         };
 
     private HashSet<String> loadedplugins = new HashSet<String>();
@@ -95,6 +98,7 @@ public class PythonPluginLoader implements PluginLoader {
                     file.getPath())));
         }
 
+        boolean hasyml = true;
         try {
             InputStream stream = null;
             ZipFile zip = null;
@@ -102,23 +106,30 @@ public class PythonPluginLoader implements PluginLoader {
                 File pluginyml = new File(file, "plugin.yml");
 
                 if (!pluginyml.exists())
-                    throw new InvalidPluginException(new FileNotFoundException("Dir does not contain plugin.yml"));
-
-                stream = new FileInputStream(pluginyml);
+                    hasyml = false;
+                else
+                    stream = new FileInputStream(pluginyml);
             } else {
                 zip = new ZipFile(file);
                 ZipEntry entry = zip.getEntry("plugin.yml");
 
-                if (entry == null) {
-                    throw new InvalidPluginException(new FileNotFoundException("Zip does not contain plugin.yml"));
-                }
-
-                stream = zip.getInputStream(entry);
+                if (entry == null)
+                    hasyml = false;
+                else
+                    stream = zip.getInputStream(entry);
             }
+            if (hasyml) {
+                description = new PluginDescriptionFile(stream);
 
-            description = new PluginDescriptionFile(stream);
-
-            stream.close();
+            } else {
+                Matcher matcher = fileFilters[0].matcher(file.getName());
+                if (!matcher.matches())
+                    //throw new BukkitScrewedUpException("This would only occur if bukkit called the loader on a plugin which does not match the loader's regex.");
+                    throw new InvalidPluginException(new Exception("This shouldn't be happening; go tell whoever altered the plugin loading api in bukkit that they're whores."));
+                description = new PluginDescriptionFile(matcher.group(1), "dev", "plugin.py");
+            }
+            if (stream != null)
+                stream.close();
             if (zip != null)
                 zip.close();
         } catch (IOException ex) {
@@ -202,6 +213,10 @@ public class PythonPluginLoader implements PluginLoader {
                     mainfile = "plugin.py";
                     contained = new File(file, mainfile);
                 }
+                if (!contained.exists()) {
+                    mainfile = "main.py";
+                    contained = new File(file, mainfile);
+                }
 
                 if (!contained.exists())
                     throw new InvalidPluginException(new FileNotFoundException("Dir does not contain "+mainfile));
@@ -215,6 +230,10 @@ public class PythonPluginLoader implements PluginLoader {
                     mainfile = "plugin.py";
                     entry = zip.getEntry(mainfile);
                 }
+                if (entry == null) {
+                    mainfile = "main.py";
+                    entry = zip.getEntry(mainfile);
+                }
 
                 if (entry == null) {
                     throw new InvalidPluginException(new FileNotFoundException("Zip does not contain "+mainfile));
@@ -224,11 +243,29 @@ public class PythonPluginLoader implements PluginLoader {
             }
             
             interp.set("hook", hook);
+            interp.set("info", description);
+            interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
             interp.execfile(instream);
 
             instream.close();
             if (zip != null)
                 zip.close();
+
+            try {
+                if (!hasyml) {
+                    Object name = interp.get("__plugin_name__");
+                    Object version = interp.get("__plugin_version__");
+                    Object website = interp.get("__plugin_website__");
+                    if (name != null)
+                        ReflectionHelper.setPrivateValue(description, "name", name.toString());
+                    if (version != null)
+                        ReflectionHelper.setPrivateValue(description, "version", version.toString());
+                    if (website != null)
+                        ReflectionHelper.setPrivateValue(description, "website", website.toString());
+                }
+            } catch (Throwable t) {
+                Logger.getLogger("Minecraft").log(Level.SEVERE, "Error while setting python-set description values", t);
+            }
 
             String mainclass = description.getMain();
             PyObject pyClass = interp.get(mainclass);
@@ -257,7 +294,7 @@ public class PythonPluginLoader implements PluginLoader {
     private boolean isPluginLoaded(String name) {
         if (loadedplugins.contains(name))
             return true;
-        if (PythonLoader.isJavaPluginLoaded(server.getPluginManager(), name))
+        if (ReflectionHelper.isJavaPluginLoaded(server.getPluginManager(), name))
             return true;
         return false;
     }
@@ -274,7 +311,7 @@ public class PythonPluginLoader implements PluginLoader {
                 }
             };
         } else {
-            JavaPluginLoader jplugload = PythonLoader.getJavaPluginLoader(server.getPluginManager());
+            JavaPluginLoader jplugload = ReflectionHelper.getJavaPluginLoader(server.getPluginManager());
             return jplugload.createExecutor(type, listener);
         }
     }
