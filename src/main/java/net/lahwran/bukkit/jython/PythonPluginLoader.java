@@ -39,7 +39,6 @@ import org.python.core.PyString;
 import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
 
-import com.master.bukkit.python.PythonLoader;
 import com.master.bukkit.python.ReflectionHelper;
 
 /**

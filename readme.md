@@ -1,3 +1,35 @@
+Python Plugin Loader
+====================
+
+The python plugin loader is a pluginloader for bukkit to load python plugins
+via jython (and hopefully via jpype eventually). 
+
+
+Using the plugin loader
+-----------------------
+
+Building
+********
+
+
+1. Get maven.
+2. Run mvn clean package
+3. Your product will be in target/
+
+
+Running
+*******
+
+1. put PyPluginLoader-0.2.jar in your bukkit/plugins/ dir
+2. put jython.jar in your bukkit/lib/ dir
+3. [re-]start bukkit
+
+Using plugins
+*************
+
+1. Stick the plugin.pyp in your bukkit/plugins/ dir
+2. [re-]start bukkit
+
 writing plugins
 ===============
 
@@ -11,10 +43,6 @@ Basics
 Your plugins go in either a zip or a directory (known to windows users as "folders");
 that zip or directory name must match this regex: \.py\.?(dir|zip|p|pl|plug|plugin)$
 
-if you need to use more than one python file for your plugin, either use a
-directory or use a zip and name it .py.zip. for internal reasons (see: zipimport),
-strongly recommend using .py.zip for all zips.
-
 
 Class (bukkit standard) API
 ---------------------------
@@ -23,6 +51,8 @@ To write a plugin with this api is almost identical to writing one in java, so
 much so that you can safely use the documentation on how to write a java
 plugin; simply translate it into python. the java2py tool may even work on
 existing java plugins (though no promises).
+
+See the "Sample plugin using class api" section for a more detailed example.
 
 your plugin.yml:
 
@@ -70,6 +100,8 @@ your main.py:
     def example(sender, command, label, args):
         sender.sendMessage("you just used comand /example!")
 
+See the "Sample plugin using decorator api" section for a more detailed example
+
 
 API Details
 ===========
@@ -80,7 +112,7 @@ section documents these.
 Plugin files
 ------------
 
-Your plugin belongs in either a zip or a directory (known to windows lusers as
+Your plugin belongs in either a zip or a directory (known to windows users as
 "folders"). This zip or directory goes in the bukkit plugins/ directory along
 with the java plugins and config directories. It must end with one of the
 allowed extensions; see the appropriate section for a list, or just use one of
@@ -90,6 +122,9 @@ Your plugin file must contain a main python file, and optionally a plugin.yml
 containing metadata (see the following section). Your python main file normally
 should be named either plugin.py or main.py. plugin.py should generally be used
 when you are using the class api and main.py when using the decorator api.
+Under some conditions you may want to change the name of your main file (such
+as, other plugins needing to be able to import it). This is not recommended but
+is possible with the main field in the metadata.
 
 Plugin metadata
 ---------------
@@ -155,6 +190,118 @@ Summary of fields:
 - "website" - mainly for people reading the code
 
 
+Decorator api
+-------------
+
+The decorator api preloads an object called "hook" into your interpreter. This
+object contains the decorators you can use. After first run, an object called
+pyplugin is also inserted into your globals, so that it may be accessed from
+functions. Some other stuff is also preloaded for you. The code runs something
+like this:
+
+    hook = PythonHooks()
+    info = getPluginDescription()
+    
+    from pythonplugin import PythonPlugin
+    
+    # Your code happens here
+    
+    updateInfo()
+    pyplugin = PythonPlugin();
+
+
+Commands
+********
+
+Commands are added with the hook.command decorator. It can be used in both
+no-arguments mode and in arguments mode. In no-arguments mode, it uses the
+function name as the command name. In arguments mode, it takes one positional
+argument, which is the command name, and three optional named arguments - desc
+or description, usage, and aliases.
+
+The decorator will attempt to register the command as though you had put it in
+a plugin.yml file. If you do not provide any command metadata to the decorator
+(that is, description, usage and aliases), then it will not be an error if the
+command already exists, and it will not overwrite the existing metadata. 
+However, if you provide metadata, then it will bail out if the command already
+exists.
+
+The decorated function may have one of these "signatures":
+def func(sender, command, label, args):
+def func(sender, label, args):
+def func(sender, args):
+
+Sender is the originator of the command; this might be a player, the console,
+or something plugin-created. Command is the object representing this command;
+this contains the metadata you set about the command. Label a string of the
+command that the player actually called; this will usually be either the
+command name or an alias. Args is the list of args to the command; normally
+bukkit space-splits the arguments.
+
+The command function must return a value that evaluates to true when it has
+handled the command; if it does not, any other handlers that might have been
+attached to the same command name will be executed. This includes the usage
+printer.
+
+some examples:
+
+    @hook.command
+    def samplecommand(sender, args):
+        sender.sendMessage("You just used the sample command!")
+        return True
+    
+    @hook.command
+    def samplecommand2(sender, label, args):
+        sender.sendMessage(label + " args: " + " ".join(args))
+        return True
+    
+    @hook.command
+    def samplecommand3(sender, command, label, args):
+        sender.sendMessage("what would you EVER use command for? I'm sure there is something...")
+        return True
+    
+    @hook.command("samplecommand4", desc="sexeh command", usage="/<command>",
+                      aliases=["samplecommand5", "samplecommand6"])
+    def samplecommand4(sender, label, args):
+        sender.sendMessage("You just used teh sexeh command! "+label)
+        return True
+
+Note that you cannot do @hook.command():
+
+    @hook.command()
+    def thisWillError(sender, args):
+        print "this plugin will not load."
+
+
+
+Events
+******
+
+Events are registered with the hook.event decorator. This decorator may only
+be used with arguments. It takes two arguments: the event type and priority.
+Both are strings. Priority may be omitted. The event type is one of the event
+types in org.bukkit.event.Event.Type, in any upper/lower case mix you like.
+The priority is one of org.bukkit.event.Event.Priority, also in any case mix.
+
+The decorated function must take exactly one argument: the event to handle.
+
+It is worth noting that Bukkit handles priority in reverse: the highest
+priority event handler is called last. Apparently they think this makes sense
+because the highest priority handler should have the last say in whether the
+event is cancelled ... well, in most of our world, we aren't wanting to cancel
+the event, but to act on it, so what they think is forward is really reverse.
+
+
+examples:
+
+    @hook.event("player_join", "normal")
+    def onPlayerJoin(event):
+        event.getPlayer().sendMessage("hello from python!")
+    
+    @hook.event("player_chat", "monitor")
+    def onPlayerChat(event):
+        event.getPlayer().sendMessage("u r gey")
+
 Specifications for sample plugin
 --------------------------------
 
@@ -176,7 +323,9 @@ Specifications for sample plugin
 Sample plugin using decorator api
 ---------------------------------
 
-main.py:
+main.py
+*******
+
 
     __plugin_name__ = "SamplePlugin"
     __plugin_version__ = "0.1-dev"
@@ -208,7 +357,8 @@ main.py:
 Sample plugin using class api
 -----------------------------
 
-plugin.yml:
+plugin.yml
+**********
 
     name: SamplePlugin
     main: SampleClass
@@ -218,7 +368,8 @@ plugin.yml:
             description: send a sample message
             usage: /<command>
 
-plugin.py:
+plugin.py
+*********
 
     from org.bukkit.event.player import PlayerListener
     from org.bukkit.event.Event import Type, Priority
@@ -226,6 +377,7 @@ plugin.py:
     class SampleClass(PythonPlugin):
         def __init__(self):
             self.listener = SampleListener(self)
+            print "sample plugin main class instantiated"
     
         def onEnable(self):
             pm = self.getServer().getPluginManager()

@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.masteroftime</groupId>
     <artifactId>PyPluginLoader</artifactId>
-    <version>0.1</version>
+    <version>0.2</version>
     <name>PyPluginLoader</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -91,7 +91,7 @@
             <configuration>
               <archive>
                 <manifestEntries>
-                  <Class-Path>jython-2.5.2.jar</Class-Path>
+                  <Class-Path>../lib/jython.jar</Class-Path>
                 </manifestEntries>
               </archive>
             </configuration>
