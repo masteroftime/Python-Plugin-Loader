@@ -54,22 +54,14 @@ public class PythonPluginLoader implements PluginLoader {
     /**
      * Filter - matches all of the following, for the regex illiterate:
      * <pre>
-     * plugin.pydir
-     * plugin.pyzip
-     * plugin.pyp
-     * plugin.pypl
-     * plugin.pyplug
-     * plugin.pyplugin
+     * plugin_py_dir
      * plugin.py.dir
      * plugin.py.zip
-     * plugin.py.p
-     * plugin.py.pl
-     * plugin.py.plug
-     * plugin.py.plugin
+     * plugin.pyp
      * </pre>
      */
     public static final Pattern[] fileFilters = new Pattern[] {
-            Pattern.compile("^(.*)\\.py\\.?(dir|zip|p|pl|plug|plugin)$"),
+            Pattern.compile("^(.*)([._]py[_.]dir|\\.py\\.zip|\\.pyp)$"),
         };
 
     private HashSet<String> loadedplugins = new HashSet<String>();
@@ -98,6 +90,7 @@ public class PythonPluginLoader implements PluginLoader {
         }
 
         boolean hasyml = true;
+        boolean hassolidmeta = false; // whether we have coder-set metadata. true for have set metadata, false for inferred metadata.
         try {
             InputStream stream = null;
             ZipFile zip = null;
@@ -119,7 +112,7 @@ public class PythonPluginLoader implements PluginLoader {
             }
             if (hasyml) {
                 description = new PluginDescriptionFile(stream);
-
+                hassolidmeta = true;
             } else {
                 Matcher matcher = fileFilters[0].matcher(file.getName());
                 if (!matcher.matches())
@@ -256,6 +249,7 @@ public class PythonPluginLoader implements PluginLoader {
                     Object version = interp.get("__plugin_version__");
                     Object website = interp.get("__plugin_website__");
                     Object main = interp.get("__plugin_mainclass__");
+                    hassolidmeta = name != null && version != null;
                     if (name != null)
                         ReflectionHelper.setPrivateValue(description, "name", name.toString());
                     if (version != null)
@@ -286,6 +280,10 @@ public class PythonPluginLoader implements PluginLoader {
                 pythonpath.remove(filepath);
             }
             throw new InvalidPluginException(t);
+        }
+
+        if (!file.isDirectory() && !hassolidmeta) {
+            throw new InvalidPluginException(new Exception("Zip plugins require either a plugin.yml or both __plugin_name__ and __plugin_version__ set in the main python file!"));
         }
 
         if (!loadedplugins.contains(description.getName()))
