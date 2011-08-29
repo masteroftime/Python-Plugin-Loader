@@ -37,8 +37,10 @@ public class PythonCommandHandler implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        func.__call__(new PyObject[] { Py.java2py(sender), Py.java2py(command), Py.java2py(label), Py.java2py(args)});
-        return false;
+        PyObject[] handlerargs = new PyObject[] { Py.java2py(sender), Py.java2py(command), Py.java2py(label), Py.java2py(args)};
+        PyObject result = func.__call__(handlerargs);
+
+        return result.__nonzero__();
     }
 
 }

@@ -256,12 +256,15 @@ public class PythonPluginLoader implements PluginLoader {
                     Object name = interp.get("__plugin_name__");
                     Object version = interp.get("__plugin_version__");
                     Object website = interp.get("__plugin_website__");
+                    Object main = interp.get("__plugin_mainclass__");
                     if (name != null)
                         ReflectionHelper.setPrivateValue(description, "name", name.toString());
                     if (version != null)
                         ReflectionHelper.setPrivateValue(description, "version", version.toString());
                     if (website != null)
                         ReflectionHelper.setPrivateValue(description, "website", website.toString());
+                    if (main != null)
+                        ReflectionHelper.setPrivateValue(description, "main", main.toString());
                 }
             } catch (Throwable t) {
                 Logger.getLogger("Minecraft").log(Level.SEVERE, "Error while setting python-set description values", t);
