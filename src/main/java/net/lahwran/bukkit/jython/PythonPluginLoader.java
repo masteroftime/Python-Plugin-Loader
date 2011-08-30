@@ -4,7 +4,6 @@
 package net.lahwran.bukkit.jython;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,8 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import org.bukkit.Server;
 import org.bukkit.event.Event;
@@ -36,6 +33,7 @@ import org.python.core.Py;
 import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
+import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
 
@@ -61,7 +59,11 @@ public class PythonPluginLoader implements PluginLoader {
      * </pre>
      */
     public static final Pattern[] fileFilters = new Pattern[] {
-            Pattern.compile("^(.*)([._]py[_.]dir|\\.py\\.zip|\\.pyp)$"),
+            Pattern.compile("^(.*)\\.py\\.dir$"),
+            Pattern.compile("^(.*)_py_dir$"),
+            Pattern.compile("^(.*)\\.py\\.zip$"),
+            Pattern.compile("^(.*)\\.pyp$"),
+            Pattern.compile("^(.*)\\.py$"),
         };
 
     private HashSet<String> loadedplugins = new HashSet<String>();
@@ -78,52 +80,66 @@ public class PythonPluginLoader implements PluginLoader {
         return loadPlugin(file, false);
     }
 
-    @SuppressWarnings("unchecked")
     public Plugin loadPlugin(File file, boolean ignoreSoftDependencies)
             throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
-        PythonPlugin result = null;
-        PluginDescriptionFile description = null;
 
         if (!file.exists()) {
             throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist",
                     file.getPath())));
         }
 
+        PluginDataFile data = null;
+
+        if (file.getName().endsWith(".py")) {
+            if (file.isDirectory())
+                throw new InvalidPluginException(new Exception("python files cannot be directories! try .py.dir instead."));
+            data = new PluginPythonFile(file);
+        } else if (file.getName().endsWith("dir")) {
+            if (!file.isDirectory())
+                throw new InvalidPluginException(new Exception("python directories cannot be normal files! try .py or .py.zip instead."));
+            data = new PluginPythonDirectory(file);
+        } else if (file.getName().endsWith("zip") || file.getName().endsWith("pyp")) {
+            if (file.isDirectory())
+                throw new InvalidPluginException(new Exception("python zips cannot be directories! try .py.dir instead."));
+            data = new PluginPythonZip(file);
+        } else {
+            throw new InvalidPluginException(new Exception("filename '"+file.getName()+"' does not end in py, dir, zip, or pyp! did you add a regex without altering loadPlugin()?"));
+        }
+
+        try {
+            return loadPlugin(file, ignoreSoftDependencies, data);
+        } finally {
+            try {
+                data.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Plugin loadPlugin(File file, boolean ignoreSoftDependencies, PluginDataFile data) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+        PythonPlugin result = null;
+        PluginDescriptionFile description = null;
         boolean hasyml = true;
         boolean hassolidmeta = false; // whether we have coder-set metadata. true for have set metadata, false for inferred metadata.
         try {
-            InputStream stream = null;
-            ZipFile zip = null;
-            if (file.isDirectory()) { //this code is nearly duplicated below :(
-                File pluginyml = new File(file, "plugin.yml");
+            InputStream stream = data.getStream("plugin.yml");
+            if (stream == null)
+                hasyml = false;
 
-                if (!pluginyml.exists())
-                    hasyml = false;
-                else
-                    stream = new FileInputStream(pluginyml);
-            } else {
-                zip = new ZipFile(file);
-                ZipEntry entry = zip.getEntry("plugin.yml");
-
-                if (entry == null)
-                    hasyml = false;
-                else
-                    stream = zip.getInputStream(entry);
-            }
             if (hasyml) {
                 description = new PluginDescriptionFile(stream);
                 hassolidmeta = true;
             } else {
-                Matcher matcher = fileFilters[0].matcher(file.getName());
-                if (!matcher.matches())
+                String stripped = stripExtension(file.getName());
+                if (stripped == null)
                     //throw new BukkitScrewedUpException("This would only occur if bukkit called the loader on a plugin which does not match the loader's regex.");
                     throw new InvalidPluginException(new Exception("This shouldn't be happening; go tell whoever altered the plugin loading api in bukkit that they're whores."));
-                description = new PluginDescriptionFile(matcher.group(1), "dev", "plugin.py");
+                description = new PluginDescriptionFile(stripped, "dev", "plugin.py");
             }
             if (stream != null)
                 stream.close();
-            if (zip != null)
-                zip.close();
         } catch (IOException ex) {
             throw new InvalidPluginException(ex);
         } catch (YAMLException ex) {
@@ -182,57 +198,41 @@ public class PythonPluginLoader implements PluginLoader {
             }
         }
 
-        PyString filepath = new PyString(file.getAbsolutePath());
         PyList pythonpath = Py.getSystemState().path;
-        if (pythonpath.__contains__(filepath)) {
-            throw new InvalidPluginException(new Exception("path " + filepath
-                    + " already on pythonpath!")); //can't imagine how this would happen, but better safe than sorry
+        PyString filepath = new PyString(file.getAbsolutePath());
+        if (data.shouldAddPathEntry()) {
+            if (pythonpath.__contains__(filepath)) {
+                throw new InvalidPluginException(new Exception("path " + filepath
+                        + " already on pythonpath!")); //can't imagine how this would happen, but better safe than sorry
+            }
+            pythonpath.append(filepath);
         }
-        pythonpath.append(filepath);
 
+
+        String mainfile = description.getMain();
+        InputStream instream = null;
+        try {
+            instream = data.getStream(mainfile);
+    
+            if (instream == null) {
+                mainfile = "plugin.py";
+                instream = data.getStream(mainfile);
+            }
+            if (instream == null) {
+                mainfile = "main.py";
+                instream = data.getStream(mainfile);
+            }
+        } catch (IOException e) {
+            throw new InvalidPluginException(e);
+        }
+
+        if (instream == null) {
+            throw new InvalidPluginException(new FileNotFoundException("Data file does not contain "+mainfile));
+        }
         try {
             PythonHooks hook = new PythonHooks(description);
 
             PythonInterpreter interp = new PythonInterpreter();
-            
-            InputStream instream = null;
-            ZipFile zip = null;
-            String mainfile = description.getMain();
-            if (file.isDirectory()) {
-                File contained = new File(file, mainfile);
-
-                if (!contained.exists()) {
-                    mainfile = "plugin.py";
-                    contained = new File(file, mainfile);
-                }
-                if (!contained.exists()) {
-                    mainfile = "main.py";
-                    contained = new File(file, mainfile);
-                }
-
-                if (!contained.exists())
-                    throw new InvalidPluginException(new FileNotFoundException("Dir does not contain "+mainfile));
-
-                instream = new FileInputStream(contained);
-            } else {
-                zip = new ZipFile(file);
-                ZipEntry entry = zip.getEntry(mainfile);
-
-                if (entry == null) {
-                    mainfile = "plugin.py";
-                    entry = zip.getEntry(mainfile);
-                }
-                if (entry == null) {
-                    mainfile = "main.py";
-                    entry = zip.getEntry(mainfile);
-                }
-
-                if (entry == null) {
-                    throw new InvalidPluginException(new FileNotFoundException("Zip does not contain "+mainfile));
-                }
-
-                instream = zip.getInputStream(entry);
-            }
             
             interp.set("hook", hook);
             interp.set("info", description);
@@ -240,8 +240,6 @@ public class PythonPluginLoader implements PluginLoader {
             interp.execfile(instream);
 
             instream.close();
-            if (zip != null)
-                zip.close();
 
             try {
                 if (!hasyml) {
@@ -276,19 +274,34 @@ public class PythonPluginLoader implements PluginLoader {
             result.initialize(this, server, description, dataFolder, file);
             interp.set("pyplugin", result);
         } catch (Throwable t) {
-            if (pythonpath.__contains__(filepath)) {
+            if (data.shouldAddPathEntry() && pythonpath.__contains__(filepath)) {
                 pythonpath.remove(filepath);
             }
             throw new InvalidPluginException(t);
         }
 
-        if (!file.isDirectory() && !hassolidmeta) {
-            throw new InvalidPluginException(new Exception("Zip plugins require either a plugin.yml or both __plugin_name__ and __plugin_version__ set in the main python file!"));
+        if (data.getNeedsSolidMeta() && !hassolidmeta) {
+            throw new InvalidPluginException(new Exception("Released plugins require either a plugin.yml or both __plugin_name__ and __plugin_version__ set in the main python file!"));
         }
 
         if (!loadedplugins.contains(description.getName()))
             loadedplugins.add(description.getName());
         return result;
+    }
+
+    /**
+     * Remove the extension for use in an automatic plugin name
+     * @param toStrip filename to strip
+     * @return stripped file name or null if not changed
+     */
+    private String stripExtension(String toStrip) {
+        for (Pattern p : fileFilters) {
+            Matcher m = p.matcher(toStrip);
+            if (m.matches()) {
+                return m.group(1);
+            }
+        }
+        return null;
     }
 
     private boolean isPluginLoaded(String name) {
