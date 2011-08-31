@@ -20,6 +20,9 @@ Building
 Running
 *******
 
+0. Ensure you are using a bukkit build that uses
+   https://github.com/Bukkit/Bukkit/pull/335 - otherwise, only some of your
+   plugins will work.
 1. put PyPluginLoader-0.2.jar in your bukkit/plugins/ dir
 2. put jython.jar in your bukkit/lib/ dir
 3. [re-]start bukkit
@@ -112,19 +115,28 @@ section documents these.
 Plugin files
 ------------
 
-Your plugin belongs in either a zip or a directory (known to windows users as
-"folders"). This zip or directory goes in the bukkit plugins/ directory along
-with the java plugins and config directories. It must end with one of the
-allowed extensions; see the appropriate section for a list, or just use one of
-.py.dir, .py.zip, and .pyp (pyp should be used when releasing plugins).
+Your plugin may go in:
 
-Your plugin file must contain a main python file, and optionally a plugin.yml
-containing metadata (see the following section). Your python main file normally
-should be named either plugin.py or main.py. plugin.py should generally be used
-when you are using the class api and main.py when using the decorator api.
-Under some conditions you may want to change the name of your main file (such
-as, other plugins needing to be able to import it). This is not recommended but
-is possible with the main field in the metadata.
+- A zip whos name ends in either .py.zip or .pyp
+- A directory whose name ends in .py.dir or \_py_dir (for windows users)
+- A python file (obviously, named .py)
+
+Zips with the .pyp extension are recommended if you release any plugins. When
+you use a zip, your must specify your own metadata; it will not allow guessed
+metadata.
+
+When using a dir or a zip, your zip or dir must contain a main python file and
+optionally a plugin.yml containing metadata (see the following section). Your
+python main file normally should be named either plugin.py or main.py.
+plugin.py should generally be used when you are using the class api and main.py
+when using the decorator api. Under some conditions you may want to change the
+name of your main file (such as, other plugins needing to be able to import
+it). This is not recommended but is possible with the main field in the
+metadata.
+
+When using a single .py file in plugins, your single .py is your main python
+file. You cannot have a separate plugin.yml - if you want to have any special
+metadata, you will need a directory or zip plugin.
 
 Plugin metadata
 ---------------
@@ -301,6 +313,29 @@ examples:
     @hook.event("player_chat", "monitor")
     def onPlayerChat(event):
         event.getPlayer().sendMessage("u r gey")
+
+Enable and Disable
+******************
+
+Functions decorated with hook.enable and hook.disable are called when your
+plugin is activated and deactivated, respectively. if you want your plugin to
+be properly reloadable, you should clean up all your objects in your
+hook.disable function.
+
+examples:
+
+    @hook.enable
+    def onEnable():
+        print "enabled!"
+    
+    @hook.disable
+    def onDisable():
+        print "disabled!"
+
+Accessing the plugin object
+***************************
+
+The plugin instance is loaded into your globals as pyplugin.
 
 Specifications for sample plugin
 --------------------------------
