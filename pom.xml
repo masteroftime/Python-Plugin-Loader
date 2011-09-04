@@ -21,6 +21,10 @@
         <id>project</id>
         <url>file://${basedir}/lib</url>
       </repository>
+	  <repository>
+	    <id>bukkit-repo</id>
+	    <url>http://repo.bukkit.org/artifactory/repo</url>
+	  </repository>
     </repositories>
     <build>
         <plugins>
