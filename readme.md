@@ -23,15 +23,15 @@ Running
 0. Ensure you are using a bukkit build that uses
    https://github.com/Bukkit/Bukkit/pull/335 - otherwise, only some of your
    plugins will work.
-1. put PyPluginLoader-0.2.jar in your bukkit/plugins/ dir
-2. put jython.jar in your bukkit/lib/ dir
-3. [re-]start bukkit
+1. Put PyPluginLoader-0.2.jar in your bukkit/plugins/ dir
+2. Put jython.jar in your bukkit/lib/ dir
+3. [Re-]Start bukkit
 
 Using plugins
 *************
 
 1. Stick the plugin.pyp in your bukkit/plugins/ dir
-2. [re-]start bukkit
+2. [Re-]Start bukkit
 
 writing plugins
 ===============
