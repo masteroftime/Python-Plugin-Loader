@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package net.lahwran.bukkit.jython;
 
@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.python.core.*;
@@ -118,8 +120,16 @@ public class PythonHooks {
      * @param handler Function handler
      * @param type event type
      * @param priority event priority
+     * @deprecated Bukkit 1.1 introduced a new EventHandling API
      */
+    @Deprecated
     public void registerEvent(PyFunction handler, Event.Type type, Event.Priority priority) {
+        checkFrozen();
+        PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
+        eventhandlers.add(wrapper);
+    }
+
+    public void registerEvent(PyFunction handler, Class<? extends Event> type, EventPriority priority) {
         checkFrozen();
         PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
         eventhandlers.add(wrapper);
@@ -131,10 +141,39 @@ public class PythonHooks {
      * @param type Event type string
      * @param priority Event priority string
      */
+    @SuppressWarnings("deprecation")
     public void registerEvent(PyFunction handler, PyString type, PyString priority) {
-        Event.Type realtype = Event.Type.valueOf(type.upper());
-        Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
-        registerEvent(handler, realtype, realpriority);
+        try {
+            String clazz = type.asString();
+            Class<?> event = null;
+
+            if(clazz.startsWith("org.bukkit.event")) {
+                //the whole name was specified, just use it
+                event = Class.forName(clazz);
+            }
+            else if(clazz.contains(".")) {
+                //assume the subpackage and class name was given and append org.bukkit.event
+                event = Class.forName("org.bukkit.event." + clazz);
+            }
+            else {
+                //assume this is an old name
+                Event.Type realtype = Event.Type.valueOf(type.upper());
+                Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
+                registerEvent(handler, realtype, realpriority);
+                return;
+            }
+
+            if(!event.getClass().isInstance(event)) {
+                throw new IllegalArgumentException(type.asString().toUpperCase() + " is not of type Event");
+            }
+            Class<? extends Event> realtype = (Class<? extends Event>)event;
+            EventPriority realpriority = EventPriority.NORMAL;//EventPriority.valueOf(priority.capitalize());
+            registerEvent(handler, realtype, realpriority);
+
+        } catch (ClassNotFoundException e) {
+            //TODO catch block
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -158,7 +197,7 @@ public class PythonHooks {
     /**
      * Register a command with no extra metadata
      * @param func function to set as handler
-     * @param name name to use 
+     * @param name name to use
      * @param usage metadata
      * @param desc metadata
      * @param aliases metadata

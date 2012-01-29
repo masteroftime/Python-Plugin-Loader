@@ -17,7 +17,7 @@ import org.python.modules.imp;
 /**
  * Unfinished importer to separate plugins into their own namespaces, possibly also import
  * java plugins
- * 
+ *
  * @author lahwran
  *
  */
@@ -66,12 +66,12 @@ public class PluginImporter extends PyObject {
             PyObject result = imp.find_module(subname, paths);
             if (result != null) {
                 PyTuple info = (PyTuple) result;
-                
+
             }
         }
         return Py.None;
     }
-    
+
     /**
      * Find the module for the fully qualified name.
      *
@@ -83,7 +83,7 @@ public class PluginImporter extends PyObject {
     public PyObject find_module(String name, PyObject path) {
         Py.writeDebug("import", "trying " + name
                 + " in PluginManager for path " + path);
-        
+
         return Py.None;
     }
 

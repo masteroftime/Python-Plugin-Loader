@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.master.bukkit.python;
 
@@ -66,7 +66,7 @@ public class ReflectionHelper {
                 fileAssociations = (Map<Pattern, PluginLoader>) fieldFileAssociations.get(pm);
             } catch (ClassCastException e) {
                 printerr("fileAssociations is not of type Map<Pattern, PluginLoader>", errorstr);
-                
+
             } catch (Throwable t) {
                 printerr("Error while getting fileAssociations from PluginManager", errorstr);
                 t.printStackTrace();
@@ -85,7 +85,7 @@ public class ReflectionHelper {
             return javapluginloader;
 
         getFileAssociations(pm, null);
-        
+
         for (Entry<Pattern, PluginLoader> entry : fileAssociations.entrySet()) {
             if (entry.getKey().pattern().equals("\\.jar$"))
                 javapluginloader = (JavaPluginLoader) entry.getValue();

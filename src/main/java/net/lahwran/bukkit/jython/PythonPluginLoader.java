@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package net.lahwran.bukkit.jython;
 
@@ -8,14 +8,21 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.Validate;
 import org.bukkit.Server;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventException;
 import org.bukkit.event.Listener;
 import org.bukkit.event.Event.Type;
 import org.bukkit.event.server.PluginDisableEvent;
@@ -26,6 +33,8 @@ import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
+import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.bukkit.plugin.UnknownSoftDependencyException;
 import org.bukkit.plugin.java.JavaPluginLoader;
@@ -36,12 +45,13 @@ import org.python.core.PyString;
 import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
+import org.yaml.snakeyaml.events.MappingEndEvent;
 
 import com.master.bukkit.python.ReflectionHelper;
 
 /**
  * A jython plugin loader. depends on JavaPluginLoader and SimplePluginManager.
- * 
+ *
  * @author masteroftime
  * @author lahwran
  */
@@ -119,6 +129,7 @@ public class PythonPluginLoader implements PluginLoader {
 
     @SuppressWarnings("unchecked")
     private Plugin loadPlugin(File file, boolean ignoreSoftDependencies, PluginDataFile data) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+        System.out.println("Loading Plugin " + file.getName());
         PythonPlugin result = null;
         PluginDescriptionFile description = null;
         boolean hasyml = true;
@@ -213,7 +224,7 @@ public class PythonPluginLoader implements PluginLoader {
         InputStream instream = null;
         try {
             instream = data.getStream(mainfile);
-    
+
             if (instream == null) {
                 mainfile = "plugin.py";
                 instream = data.getStream(mainfile);
@@ -233,7 +244,7 @@ public class PythonPluginLoader implements PluginLoader {
             PythonHooks hook = new PythonHooks(description);
 
             PythonInterpreter interp = new PythonInterpreter();
-            
+
             interp.set("hook", hook);
             interp.set("info", description);
             interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
@@ -272,6 +283,7 @@ public class PythonPluginLoader implements PluginLoader {
             result.hooks = hook;
             result.interp = interp;
             result.initialize(this, server, description, dataFolder, file);
+            result.setDataFile(data);
             interp.set("pyplugin", result);
         } catch (Throwable t) {
             if (data.shouldAddPathEntry() && pythonpath.__contains__(filepath)) {
@@ -377,10 +389,96 @@ public class PythonPluginLoader implements PluginLoader {
                         ex);
             }
 
+            //finally register the listener for the hook events
+            server.getPluginManager().registerEvents(pyPlugin.listener, pyPlugin);
+
             // Perhaps abort here, rather than continue going, but as it stands,
             // an abort is not possible the way it's currently written
             server.getPluginManager().callEvent(new PluginEnableEvent(plugin));
         }
     }
 
+    @Override
+    public Map<Class<? extends Event>, Set<RegisteredListener>> createRegisteredListeners(
+            Listener listener, Plugin plugin) {
+        //TODO Implement method
+        boolean useTimings = server.getPluginManager().useTimings();
+        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
+
+        if(!listener.getClass().equals(PythonListener.class)) {
+            throw new IllegalArgumentException("Listener to register is not a PythonListener");
+        }
+
+        PythonListener pyListener = (PythonListener)listener;
+
+        for(Map.Entry<Class<? extends Event>, Set<PythonEventHandler>> entry : pyListener.handlers.entrySet()) {
+            Set<RegisteredListener> eventSet = new HashSet<RegisteredListener>();
+
+            for(final PythonEventHandler handler : entry.getValue()) {
+                EventExecutor executor = new EventExecutor() {
+
+                    @Override
+                    public void execute(Listener listener, Event event) throws EventException {
+                        if(!listener.getClass().equals(PythonListener.class)) {
+                            throw new IllegalArgumentException("No PythonListener passed to EventExecutor! If this happens someone really fucked up something");
+                        }
+                        ((PythonListener)listener).fireEvent(event, handler);
+                    }
+                };
+                if(useTimings) {
+                    eventSet.add(new TimedRegisteredListener(pyListener, executor, handler.priority, plugin));
+                }
+                else {
+                    eventSet.add(new RegisteredListener(pyListener, executor, handler.priority, plugin));
+                }
+            }
+            ret.put(entry.getKey(), eventSet);
+        }
+        return ret;
+    }
+
+    @Override
+    public PluginDescriptionFile getPluginDescription(File file)
+            throws InvalidPluginException, InvalidDescriptionException {
+        Validate.notNull(file, "File cannot be null");
+
+        InputStream stream = null;
+        PluginDataFile data = null;
+
+        if (file.getName().endsWith(".py")) {
+            if (file.isDirectory())
+                throw new InvalidPluginException(new Exception("python files cannot be directories! try .py.dir instead."));
+            data = new PluginPythonFile(file);
+        } else if (file.getName().endsWith("dir")) {
+            if (!file.isDirectory())
+                throw new InvalidPluginException(new Exception("python directories cannot be normal files! try .py or .py.zip instead."));
+            data = new PluginPythonDirectory(file);
+        } else if (file.getName().endsWith("zip") || file.getName().endsWith("pyp")) {
+            if (file.isDirectory())
+                throw new InvalidPluginException(new Exception("python zips cannot be directories! try .py.dir instead."));
+            data = new PluginPythonZip(file);
+        } else {
+            throw new InvalidPluginException(new Exception("filename '"+file.getName()+"' does not end in py, dir, zip, or pyp! did you add a regex without altering loadPlugin()?"));
+        }
+
+        try {
+            stream = data.getStream("plugin.yml");
+
+            if(stream == null) {
+                //TODO Does this cause serious problems with plugins which have no plugin.yml file?
+                throw new InvalidPluginException(new FileNotFoundException("Jar does not contain plugin.yml"));
+            }
+
+            return new PluginDescriptionFile(stream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException e) {}
+            }
+        }
+        return null;
+    }
 }

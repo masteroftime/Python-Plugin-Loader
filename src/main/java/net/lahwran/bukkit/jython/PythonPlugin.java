@@ -1,20 +1,30 @@
 /**
- * 
+ *
  */
 package net.lahwran.bukkit.jython;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
+import org.bukkit.plugin.PluginLogger;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
 import org.python.util.PythonInterpreter;
 
@@ -38,6 +48,10 @@ private boolean isEnabled = false;
     private Configuration config = null;
     private boolean naggable = true;
     private EbeanServer ebean = null;
+    private FileConfiguration newConfig = null;
+    private File configFile = null;
+    private PluginLogger logger = null;
+    private PluginDataFile dataFile = null; //data file used for retrieving resources
 
     /**
      * Listener to handle all PythonHooks events for this plugin.
@@ -115,10 +129,23 @@ private boolean isEnabled = false;
      * does not exist and it cannot be loaded, no error will be emitted and
      * the configuration file will have no values.
      *
-     * @return config
+     * @return The configuration.
+     * @deprecated See the new
      */
+    @Deprecated
     public Configuration getConfiguration() {
+        if (config == null) {
+            config = new Configuration(configFile);
+            config.load();
+        }
         return config;
+    }
+
+    public FileConfiguration getConfig() {
+        if (newConfig == null) {
+            reloadConfig();
+        }
+        return newConfig;
     }
 
     /**
@@ -280,6 +307,13 @@ private boolean isEnabled = false;
         gen.runScript(true, gen.generateDropDdl());
     }
 
+    public Logger getLogger() {
+        if (logger == null) {
+            logger = new PluginLogger(this);
+        }
+        return logger;
+    }
+
     @Override
     public String toString() {
         return getDescription().getFullName();
@@ -289,10 +323,83 @@ private boolean isEnabled = false;
 
     public void onDisable() { }
 
+    @Override
+    public InputStream getResource(String filename) {
+        if(filename == null) {
+            throw new IllegalArgumentException("Filename cannot be null");
+        }
 
+        try {
+            return dataFile.getStream(filename);
+        } catch (IOException e) {
+            //just return null and do not print stack trace as JavaPlugin's getResource does not print it either
+            return null;
+        }
+    }
 
+    @Override
+    public void saveResource(String resourcePath, boolean replace) {
+        if (resourcePath == null || resourcePath.equals("")) {
+            throw new IllegalArgumentException("ResourcePath cannot be null or empty");
+        }
 
+        // TODO is this necessary for use with PluginDataFile?
+        resourcePath = resourcePath.replace('\\', '/');
+        InputStream in = getResource(resourcePath);
+        if (in == null) {
+            throw new IllegalArgumentException("The embedded resource '" + resourcePath + "' cannot be found in " + getFile());
+        }
 
+        File outFile = new File(getDataFolder(), resourcePath);
+        int lastIndex = resourcePath.lastIndexOf('/');
+        File outDir = new File(getDataFolder(), resourcePath.substring(0, lastIndex >= 0 ? lastIndex : 0));
 
+        if (!outDir.exists()) {
+            outDir.mkdirs();
+        }
 
+        try {
+            if (!outFile.exists() || replace) {
+                OutputStream out = new FileOutputStream(outFile);
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                out.close();
+                in.close();
+            } else {
+                Logger.getLogger(JavaPlugin.class.getName()).log(Level.WARNING, "Could not save " + outFile.getName() + " to " + outFile + " because " + outFile.getName() + " already exists.");
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(JavaPlugin.class.getName()).log(Level.SEVERE, "Could not save " + outFile.getName() + " to " + outFile, ex);
+        }
+    }
+
+    public void reloadConfig() {
+        newConfig = YamlConfiguration.loadConfiguration(configFile);
+
+        InputStream defConfigStream = getResource("config.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+
+            newConfig.setDefaults(defConfig);
+        }
+    }
+
+    public void saveConfig() {
+        try {
+            getConfig().save(configFile);
+        } catch (IOException ex) {
+            Logger.getLogger(PythonPlugin.class.getName()).log(Level.SEVERE, "Could not save config to " + configFile, ex);
+        }
+    }
+
+    public void saveDefaultConfig() {
+        saveResource("config.yml", false);
+    }
+
+    protected void setDataFile(PluginDataFile file) {
+        this.dataFile = file;
+    }
 }
