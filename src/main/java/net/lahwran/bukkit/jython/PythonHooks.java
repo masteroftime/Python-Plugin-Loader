@@ -167,6 +167,7 @@ public class PythonHooks {
                 Event.Type realtype = Event.Type.valueOf(type.upper());
                 Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
                 registerEvent(handler, realtype, realpriority);
+                Bukkit.getLogger().log(Level.WARNING, "Registered deprecated event " + realtype + "! Since Bukkit 1.1 the event type should be specified in a new format");
                 return;
             }
 

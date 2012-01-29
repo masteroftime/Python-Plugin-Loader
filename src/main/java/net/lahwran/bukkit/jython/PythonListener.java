@@ -32,7 +32,7 @@ public class PythonListener implements Listener {
      */
     @Deprecated
     void onEvent(Event e) {
-        PythonEventHandler handler = oldHandlers.get(e.getClass());
+        PythonEventHandler handler = oldHandlers.get(e.getType());
         if (handler == null) {
             return;
         }
