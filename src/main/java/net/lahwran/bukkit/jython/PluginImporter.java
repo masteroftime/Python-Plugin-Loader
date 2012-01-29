@@ -1,8 +1,6 @@
 package net.lahwran.bukkit.jython;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;

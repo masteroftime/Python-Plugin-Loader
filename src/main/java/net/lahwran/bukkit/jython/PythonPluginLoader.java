@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -22,9 +20,9 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Server;
 import org.bukkit.event.Event;
+import org.bukkit.event.Event.Type;
 import org.bukkit.event.EventException;
 import org.bukkit.event.Listener;
-import org.bukkit.event.Event.Type;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.EventExecutor;
@@ -42,10 +40,8 @@ import org.python.core.Py;
 import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
-import org.python.core.PySystemState;
 import org.python.util.PythonInterpreter;
 import org.yaml.snakeyaml.error.YAMLException;
-import org.yaml.snakeyaml.events.MappingEndEvent;
 
 import com.master.bukkit.python.ReflectionHelper;
 
@@ -401,7 +397,6 @@ public class PythonPluginLoader implements PluginLoader {
     @Override
     public Map<Class<? extends Event>, Set<RegisteredListener>> createRegisteredListeners(
             Listener listener, Plugin plugin) {
-        //TODO Implement method
         boolean useTimings = server.getPluginManager().useTimings();
         Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
 

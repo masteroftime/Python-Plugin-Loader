@@ -7,15 +7,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
-import org.bukkit.plugin.InvalidPluginException;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
-import org.python.core.*;
+import org.python.core.Py;
+import org.python.core.PyException;
+import org.python.core.PyFunction;
+import org.python.core.PyList;
+import org.python.core.PyObject;
+import org.python.core.PyString;
 
 import com.master.bukkit.python.ReflectionHelper;
+import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 
 /**
  * Python decorators and handler registration
@@ -171,8 +178,7 @@ public class PythonHooks {
             registerEvent(handler, realtype, realpriority);
 
         } catch (ClassNotFoundException e) {
-            //TODO catch block
-            e.printStackTrace();
+            Bukkit.getLogger().log(Level.SEVERE, "Could not register event " + type +" because the event could not be found", e);
         }
     }
 
