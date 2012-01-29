@@ -95,7 +95,7 @@ your main.py:
     def ondisable():
         print "main.py disabled"
     
-    @hook.event("player_join", "normal")
+    @hook.event("player.PlayerJoinEvent", "normal")
     def playerjoin(event):
         event.getPlayer().sendMessage("Hello from python")
     
@@ -291,9 +291,23 @@ Events
 
 Events are registered with the hook.event decorator. This decorator may only
 be used with arguments. It takes two arguments: the event type and priority.
-Both are strings. Priority may be omitted. The event type is one of the event
-types in org.bukkit.event.Event.Type, in any upper/lower case mix you like.
-The priority is one of org.bukkit.event.Event.Priority, also in any case mix.
+Both are strings. Priority may be omitted. The event type has to be the class
+name of the event plus the package which contains the class (e.g. player.PlayerChatEvent).
+For a list of available events look into the org.bukkit.event package. Also 
+note that the class name is case sensitive. If you want to register an event
+that is not contained in the org.bukkit.event package you have to specify the
+full path to the event (e.g. net.anotherplugin.events.CustomEvent).
+
+The priority is one of the org.bukkit.event.EventPriority enumeration, this time case insensitive.
+
+> Note:
+> 
+> Previously the event type was one of the event types in 
+> org.bukkit.event.Event.Type, in any upper/lower case mix you liked and the
+> priority was one of org.bukkit.event.Event.Priority, also in any case mix.
+> However due to the introduction of the new EventHandling API Event.Type and
+> Event.Priority are now deprecated and should not be used any more. Instead
+> use the class name of the desired event and the EventPriority enumeration.
 
 The decorated function must take exactly one argument: the event to handle.
 
@@ -306,11 +320,11 @@ the event, but to act on it, so what they think is forward is really reverse.
 
 examples:
 
-    @hook.event("player_join", "normal")
+    @hook.event("player.PlayerJoinEvent", "normal")
     def onPlayerJoin(event):
         event.getPlayer().sendMessage("hello from python!")
     
-    @hook.event("player_chat", "monitor")
+    @hook.event("player.PlayerChatEvent", "monitor")
     def onPlayerChat(event):
         event.getPlayer().sendMessage("u r gey")
 
