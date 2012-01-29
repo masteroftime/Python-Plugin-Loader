@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.masteroftime</groupId>
     <artifactId>PyPluginLoader</artifactId>
-    <version>0.2</version>
+    <version>0.3-SNAPSHOT</version>
     <name>PyPluginLoader</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -16,7 +16,7 @@
     <repositories>
 	  <repository>
 	    <id>bukkit-repo</id>
-	    <url>http://repo.bukkit.org/artifactory/repo</url>
+	    <url>http://repo.bukkit.org/content/groups/public</url>
 	  </repository>
     </repositories>
     <build>
@@ -104,7 +104,7 @@
         <dependency>
           <groupId>org.bukkit</groupId>
           <artifactId>bukkit</artifactId>
-          <version>0.0.1-SNAPSHOT</version>
+          <version>1.1-R1</version>
         </dependency>
     </dependencies>
 </project>
