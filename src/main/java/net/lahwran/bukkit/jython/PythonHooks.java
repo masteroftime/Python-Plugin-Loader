@@ -174,7 +174,7 @@ public class PythonHooks {
                 throw new IllegalArgumentException(type.asString().toUpperCase() + " is not of type Event");
             }
             Class<? extends Event> realtype = (Class<? extends Event>)event;
-            EventPriority realpriority = EventPriority.NORMAL;//EventPriority.valueOf(priority.capitalize());
+            EventPriority realpriority = EventPriority.valueOf(priority.upper());
             registerEvent(handler, realtype, realpriority);
 
         } catch (ClassNotFoundException e) {
