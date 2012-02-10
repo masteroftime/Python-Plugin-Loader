@@ -20,9 +20,9 @@ import org.python.core.PyFunction;
 import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
+import org.python.core.PyType;
 
 import com.master.bukkit.python.ReflectionHelper;
-import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 
 /**
  * Python decorators and handler registration
@@ -54,6 +54,11 @@ public class PythonHooks {
      * List of handlers to register
      */
     ArrayList<PythonCommandHandler> commandhandlers = new ArrayList<PythonCommandHandler>();
+    
+    /**
+     * List of custom events
+     */
+    Map<String, Class<? extends Event>> customEvents = new HashMap<String, Class<? extends Event>>();
 
     /**
      * Plugin description to modify when registering commands
@@ -346,5 +351,23 @@ public class PythonHooks {
         } else {
             throw Py.TypeError("you gave command() bad arguments, but lahwran was tired when he wrote this, so you don't get a helpful error message. sucks to be you.");
         }
+    }
+    
+    public PyObject custom_event(PyType event) {
+        if(((PyType)((PyType)event.getBase()).getBase()).getName().equals("PythonCustomEvent"))
+        {
+            //get the proxy class for the custom event
+            Class<? extends Event> jEvent = Py.tojava(event, PythonCustomEvent.class.getClass());
+            String name = event.getName();
+            
+            this.customEvents.put(name, jEvent);
+            //System.out.println("Registered new CustomEvent: " + event.getName() + " (" + jEvent.getClass() + ")");
+        }
+        else
+        {
+            throw new IllegalArgumentException("Tried to register an event which doesn't extend CustomEvent.");
+        }
+        
+        return event;
     }
 }
