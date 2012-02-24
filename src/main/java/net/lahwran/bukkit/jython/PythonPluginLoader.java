@@ -422,10 +422,10 @@ public class PythonPluginLoader implements PluginLoader {
                     }
                 };
                 if(useTimings) {
-                    eventSet.add(new TimedRegisteredListener(pyListener, executor, handler.priority, plugin));
+                    eventSet.add(new TimedRegisteredListener(pyListener, executor, handler.priority, plugin, false));
                 }
                 else {
-                    eventSet.add(new RegisteredListener(pyListener, executor, handler.priority, plugin));
+                    eventSet.add(new RegisteredListener(pyListener, executor, handler.priority, plugin, false));
                 }
             }
             ret.put(entry.getKey(), eventSet);
