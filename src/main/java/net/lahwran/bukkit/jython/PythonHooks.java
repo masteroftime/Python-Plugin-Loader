@@ -12,9 +12,13 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.python.core.Py;
+import org.python.core.PyBuiltinClassMethodNarrow;
+import org.python.core.PyBuiltinMethod;
+import org.python.core.PyClassMethod;
 import org.python.core.PyException;
 import org.python.core.PyFunction;
 import org.python.core.PyList;
@@ -127,20 +131,6 @@ public class PythonHooks {
             throw new PyException(new PyString("error"), new PyString("Cannot register handlers when frozen"));
     }
 
-    /**
-     * Register an event. python-facing.
-     * @param handler Function handler
-     * @param type event type
-     * @param priority event priority
-     * @deprecated Bukkit 1.1 introduced a new EventHandling API
-     */
-    @Deprecated
-    public void registerEvent(PyFunction handler, Event.Type type, Event.Priority priority) {
-        checkFrozen();
-        PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
-        eventhandlers.add(wrapper);
-    }
-
     public void registerEvent(PyFunction handler, Class<? extends Event> type, EventPriority priority) {
         checkFrozen();
         PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
@@ -159,21 +149,22 @@ public class PythonHooks {
             String clazz = type.asString();
             Class<?> event = null;
 
-            if(clazz.startsWith("org.bukkit.event")) {
-                //the whole name was specified, just use it
-                event = Class.forName(clazz);
+            if(clazz.contains(".")) {
+                try {
+                    //try if we can find the class
+                    event = Class.forName(clazz);
+                } catch (ClassNotFoundException e) {
+                    //assume the subpackage and class name was given and append org.bukkit.event
+                    event = Class.forName("org.bukkit.event." + clazz);
+                }
             }
-            else if(clazz.contains(".")) {
-                //assume the subpackage and class name was given and append org.bukkit.event
-                event = Class.forName("org.bukkit.event." + clazz);
+            else if(customEvents.containsKey(clazz)) {
+                //check if the name of a custom event was given
+                event = customEvents.get(clazz);
             }
-            else {
-                //assume this is an old name
-                Event.Type realtype = Event.Type.valueOf(type.upper());
-                Event.Priority realpriority = Event.Priority.valueOf(priority.capitalize());
-                registerEvent(handler, realtype, realpriority);
-                Bukkit.getLogger().log(Level.WARNING, "Registered deprecated event " + realtype + "! Since Bukkit 1.1 the event type should be specified in a new format");
-                return;
+            else
+            {
+                throw new IllegalArgumentException("Could not find Event " + clazz);
             }
 
             if(!event.getClass().isInstance(event)) {
@@ -252,21 +243,6 @@ public class PythonHooks {
     public PyFunction disable(PyFunction func) {
         onDisable = func;
         return func;
-    }
-
-    /**
-     * Python decorator. functions decorated with this are called as event handlers
-     * @param type event type
-     * @param priority event priority
-     * @return decorated function
-     */
-    public PyObject event(final Event.Type type, final Event.Priority priority) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, priority);
-                return func;
-            }
-        };
     }
 
 
@@ -353,19 +329,30 @@ public class PythonHooks {
         }
     }
     
-    public PyObject custom_event(PyType event) {
-        if(((PyType)((PyType)event.getBase()).getBase()).getName().equals("PythonCustomEvent"))
-        {
-            //get the proxy class for the custom event
-            Class<? extends Event> jEvent = Py.tojava(event, PythonCustomEvent.class.getClass());
-            String name = event.getName();
+    public PyObject custom_event(PyType event) {        
+        Class<?> proxy = event.getProxyType();
+        
+        if(Event.class.isAssignableFrom(proxy)) {
+            //add the stupid handler list attribute and get handler list method
+            //which the bukkit team could not add themselves for some strange reason
+//            event.__setattr__("handlerList", Py.java2py(new HandlerList()));
+//            ((PyType)event.getBase()).addMethod(new PyBuiltinClassMethodNarrow("getHandlerList", 0, 0) {
+//                @Override
+//                public PyObject __call__() {
+//                    return self.__getattr__("handlerList");
+//                }
+//            });
+//            event.addMethod(new PyBuiltinClassMethodNarrow("getHandlers", 0, 0) {
+//                @Override
+//                public PyObject __call__() {
+//                    return self.__getattr__("handlerList");
+//                }
+//            });
             
-            this.customEvents.put(name, jEvent);
-            //System.out.println("Registered new CustomEvent: " + event.getName() + " (" + jEvent.getClass() + ")");
+            customEvents.put(event.getName(), (Class<? extends Event>) proxy);
         }
-        else
-        {
-            throw new IllegalArgumentException("Tried to register an event which doesn't extend CustomEvent.");
+        else {
+            throw new IllegalArgumentException("Tried to register a custom Event which does not extend Event");
         }
         
         return event;

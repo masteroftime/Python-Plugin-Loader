@@ -21,15 +21,15 @@ public class PythonListener implements Listener {
     /**
      * handlers registered that this listener needs to handle
      */
-    HashMap<Event.Type, PythonEventHandler> oldHandlers = new HashMap<Event.Type, PythonEventHandler>();
     HashMap<Class<? extends Event>, Set<PythonEventHandler>> handlers = new HashMap<Class<? extends Event>, Set<PythonEventHandler>>();
 
-    /**
+    /*
      * Handle an event. Depends on jython being smart enough to cast the event
      * down to whatever it is. Hint: jython is smart enough.
      * @param e event
      * @deprecated The new Event API uses the fireEvent method
      */
+    /* I guess the whole method is unneccessary now
     @Deprecated
     void onEvent(Event e) {
         PythonEventHandler handler = oldHandlers.get(e.getType());
@@ -37,7 +37,7 @@ public class PythonListener implements Listener {
             return;
         }
         handler.handler.__call__(Py.java2py(e));
-    }
+    }*/
 
     void fireEvent(Event e, PythonEventHandler handler) {
         handler.handler.__call__(Py.java2py(e));

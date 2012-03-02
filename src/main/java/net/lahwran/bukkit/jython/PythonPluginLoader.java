@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.Validate;
 import org.bukkit.Server;
 import org.bukkit.event.Event;
-import org.bukkit.event.Event.Type;
 import org.bukkit.event.EventException;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
@@ -34,7 +33,6 @@ import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
-import org.bukkit.plugin.UnknownSoftDependencyException;
 import org.bukkit.plugin.java.JavaPluginLoader;
 import org.python.core.Py;
 import org.python.core.PyList;
@@ -81,13 +79,12 @@ public class PythonPluginLoader implements PluginLoader {
         this.server = server;
     }
 
-    public Plugin loadPlugin(File file) throws InvalidPluginException, InvalidDescriptionException,
-            UnknownDependencyException {
+    public Plugin loadPlugin(File file) throws InvalidPluginException/*, UnknownDependencyException*/ {
         return loadPlugin(file, false);
     }
 
     public Plugin loadPlugin(File file, boolean ignoreSoftDependencies)
-            throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+            throws InvalidPluginException/*, InvalidDescriptionException, UnknownDependencyException*/ {
 
         if (!file.exists()) {
             throw new InvalidPluginException(new FileNotFoundException(String.format("%s does not exist",
@@ -124,7 +121,7 @@ public class PythonPluginLoader implements PluginLoader {
     }
 
     @SuppressWarnings("unchecked")
-    private Plugin loadPlugin(File file, boolean ignoreSoftDependencies, PluginDataFile data) throws InvalidPluginException, InvalidDescriptionException, UnknownDependencyException {
+    private Plugin loadPlugin(File file, boolean ignoreSoftDependencies, PluginDataFile data) throws InvalidPluginException/*, InvalidDescriptionException, UnknownDependencyException*/ {
         System.out.println("Loading Plugin " + file.getName());
         PythonPlugin result = null;
         PluginDescriptionFile description = null;
@@ -150,6 +147,8 @@ public class PythonPluginLoader implements PluginLoader {
         } catch (IOException ex) {
             throw new InvalidPluginException(ex);
         } catch (YAMLException ex) {
+            throw new InvalidPluginException(ex);
+        } catch (InvalidDescriptionException ex) {
             throw new InvalidPluginException(ex);
         }
 
@@ -183,25 +182,6 @@ public class PythonPluginLoader implements PluginLoader {
         for (String pluginName : depend) {
             if (!isPluginLoaded(pluginName)) {
                 throw new UnknownDependencyException(pluginName);
-            }
-        }
-
-        if (!ignoreSoftDependencies) {
-            ArrayList<String> softDepend;
-
-            try {
-                softDepend = (ArrayList<String>) description.getSoftDepend();
-                if (softDepend == null) {
-                    softDepend = new ArrayList<String>();
-                }
-            } catch (ClassCastException ex) {
-                throw new InvalidPluginException(ex);
-            }
-
-            for (String pluginName : softDepend) {
-                if (!isPluginLoaded(pluginName)) {
-                    throw new UnknownSoftDependencyException(pluginName);
-                }
             }
         }
 
@@ -325,7 +305,7 @@ public class PythonPluginLoader implements PluginLoader {
         return fileFilters;
     }
 
-    public EventExecutor createExecutor(Type type, Listener listener) {
+    /*public EventExecutor createExecutor(Type type, Listener listener) {
         if (listener.getClass().equals(PythonListener.class)) { // 8 times faster than instanceof \o/
             return new EventExecutor() {
                 public void execute(Listener listener, Event event) {
@@ -336,7 +316,7 @@ public class PythonPluginLoader implements PluginLoader {
             JavaPluginLoader jplugload = ReflectionHelper.getJavaPluginLoader(server.getPluginManager());
             return jplugload.createExecutor(type, listener);
         }
-    }
+    }*/
 
     public void disablePlugin(Plugin plugin) {
         if (!(plugin instanceof PythonPlugin)) {
@@ -435,7 +415,7 @@ public class PythonPluginLoader implements PluginLoader {
 
     @Override
     public PluginDescriptionFile getPluginDescription(File file)
-            throws InvalidPluginException, InvalidDescriptionException {
+            throws InvalidDescriptionException {
         Validate.notNull(file, "File cannot be null");
 
         InputStream stream = null;
@@ -443,18 +423,23 @@ public class PythonPluginLoader implements PluginLoader {
 
         if (file.getName().endsWith(".py")) {
             if (file.isDirectory())
-                throw new InvalidPluginException(new Exception("python files cannot be directories! try .py.dir instead."));
+                //cause we can't throw InvalidPluginExceptions from here we throw an InvalidDescriptionExecption with the InvalidPlugin as cause
+                throw new InvalidDescriptionException(new InvalidPluginException(new Exception("python files cannot be directories! try .py.dir instead.")));
             data = new PluginPythonFile(file);
         } else if (file.getName().endsWith("dir")) {
             if (!file.isDirectory())
-                throw new InvalidPluginException(new Exception("python directories cannot be normal files! try .py or .py.zip instead."));
+                throw new InvalidDescriptionException(new InvalidPluginException(new Exception("python directories cannot be normal files! try .py or .py.zip instead.")));
             data = new PluginPythonDirectory(file);
         } else if (file.getName().endsWith("zip") || file.getName().endsWith("pyp")) {
             if (file.isDirectory())
-                throw new InvalidPluginException(new Exception("python zips cannot be directories! try .py.dir instead."));
-            data = new PluginPythonZip(file);
+                throw new InvalidDescriptionException(new InvalidPluginException(new Exception("python zips cannot be directories! try .py.dir instead.")));
+            try {
+                data = new PluginPythonZip(file);
+            } catch (InvalidPluginException ex) {
+                throw new InvalidDescriptionException(ex);
+            }
         } else {
-            throw new InvalidPluginException(new Exception("filename '"+file.getName()+"' does not end in py, dir, zip, or pyp! did you add a regex without altering loadPlugin()?"));
+            throw new InvalidDescriptionException(new InvalidPluginException(new Exception("filename '"+file.getName()+"' does not end in py, dir, zip, or pyp! did you add a regex without altering loadPlugin()?")));
         }
 
         try {
@@ -462,7 +447,7 @@ public class PythonPluginLoader implements PluginLoader {
 
             if(stream == null) {
                 //TODO Does this cause serious problems with plugins which have no plugin.yml file?
-                throw new InvalidPluginException(new FileNotFoundException("Jar does not contain plugin.yml"));
+                throw new InvalidDescriptionException(new InvalidPluginException(new FileNotFoundException("Jar does not contain plugin.yml")));
             }
 
             return new PluginDescriptionFile(stream);

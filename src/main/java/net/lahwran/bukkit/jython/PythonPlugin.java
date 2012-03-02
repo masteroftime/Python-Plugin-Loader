@@ -17,6 +17,7 @@ import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.generator.ChunkGenerator;
@@ -25,7 +26,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginLogger;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
 import org.python.util.PythonInterpreter;
 
 import com.avaje.ebean.EbeanServer;
@@ -135,8 +135,7 @@ private boolean isEnabled = false;
     @Deprecated
     public Configuration getConfiguration() {
         if (config == null) {
-            config = new Configuration(configFile);
-            config.load();
+            config = YamlConfiguration.loadConfiguration(configFile);
         }
         return config;
     }
@@ -193,8 +192,7 @@ private boolean isEnabled = false;
             this.description = description;
             this.dataFolder = dataFolder;
             //this.classLoader = classLoader;
-            this.config = new Configuration(new File(dataFolder, "config.yml"));
-            this.config.load();
+            this.config = YamlConfiguration.loadConfiguration(new File(dataFolder, "config.yml"));
 
             /*if (description.isDatabaseEnabled()) {
                 ServerConfig db = new ServerConfig();
@@ -401,5 +399,11 @@ private boolean isEnabled = false;
 
     protected void setDataFile(PluginDataFile file) {
         this.dataFile = file;
+    }
+
+    @Override
+    public String getName() {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
