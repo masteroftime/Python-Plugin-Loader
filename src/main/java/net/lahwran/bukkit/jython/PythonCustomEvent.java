@@ -7,7 +7,7 @@ import org.bukkit.event.HandlerList;
  * Superclass for custom events in pyhton
  *  @author masteroftime
  */
-public class PythonCustomEvent extends Event {
+public abstract class PythonCustomEvent extends Event {
     private static final HandlerList handlers = new HandlerList();
     
     public HandlerList getHandlers() {
