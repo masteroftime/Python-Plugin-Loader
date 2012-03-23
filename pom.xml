@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.masteroftime</groupId>
     <artifactId>PyPluginLoader</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.2</version>
     <name>PyPluginLoader</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -104,7 +104,7 @@
         <dependency>
           <groupId>org.bukkit</groupId>
           <artifactId>bukkit</artifactId>
-          <version>1.1-R6</version>
+          <version>1.2.3-R0.2</version>
         </dependency>
     </dependencies>
 </project>
