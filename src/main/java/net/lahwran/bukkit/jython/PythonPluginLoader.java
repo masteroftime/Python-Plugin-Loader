@@ -225,6 +225,18 @@ public class PythonPluginLoader implements PluginLoader {
             interp.set("info", description);
             interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
             interp.exec("import net.lahwran.bukkit.jython.PythonCustomEvent as CustomEvent");
+            interp.exec("import sys");
+            interp.exec(
+"class PyStdoutRedirect:\n" +
+"    def write(self, txt):\n" +
+"        if txt.endswith(\"\\n\"):\n" +
+"            sys.__stdout__.write(txt[:-1])\n" +
+"            sys.__stdout__.flush()\n" +
+"            output = txt\n" +
+"        else:\n" +
+"            sys.__stdout__.write(txt)"
+);
+            interp.exec("sys.stdout = PyStdoutRedirect()");
             interp.execfile(instream);
 
             instream.close();
