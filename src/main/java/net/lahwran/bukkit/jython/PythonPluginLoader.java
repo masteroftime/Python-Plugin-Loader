@@ -232,7 +232,6 @@ public class PythonPluginLoader implements PluginLoader {
 "        if txt.endswith(\"\\n\"):\n" +
 "            sys.__stdout__.write(txt[:-1])\n" +
 "            sys.__stdout__.flush()\n" +
-"            output = txt\n" +
 "        else:\n" +
 "            sys.__stdout__.write(txt)"
 );
