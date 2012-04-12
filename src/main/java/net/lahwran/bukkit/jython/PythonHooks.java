@@ -143,7 +143,6 @@ public class PythonHooks {
      * @param type Event type string
      * @param priority Event priority string
      */
-    @SuppressWarnings("deprecation")
     public void registerEvent(PyFunction handler, PyString type, PyString priority) {
         try {
             String clazz = type.asString();
