@@ -56,9 +56,6 @@ class PythonEventHandler {
         try {
             if (currentlyRegistered)
                 throw new IllegalStateException("Attempting to register an already registered handler");
-            if (plugin.listener.handlers.get(type) != null)
-                throw new IllegalStateException("Attempting to register event type '"+type+"' on top of another handler");
-
             else {
                 plugin.listener.addHandler(type, this);
             }
