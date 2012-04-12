@@ -131,7 +131,7 @@ public class PythonHooks {
             throw new PyException(new PyString("error"), new PyString("Cannot register handlers when frozen"));
     }
 
-    public void registerEvent(PyFunction handler, Class<? extends Event> type, EventPriority priority) {
+    public void registerEvent(PyObject handler, Class<? extends Event> type, EventPriority priority) {
         checkFrozen();
         PythonEventHandler wrapper = new PythonEventHandler(handler, type, priority);
         eventhandlers.add(wrapper);
@@ -143,7 +143,7 @@ public class PythonHooks {
      * @param type Event type string
      * @param priority Event priority string
      */
-    public void registerEvent(PyFunction handler, PyString type, PyString priority) {
+    public void registerEvent(PyObject handler, PyString type, PyString priority) {
         try {
             String clazz = type.asString();
             Class<?> event = null;
@@ -254,7 +254,7 @@ public class PythonHooks {
     public PyObject event(final PyString type, final PyString priority) {
         return new PyObject() {
             public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, priority);
+                registerEvent(func, type, priority);
                 return func;
             }
         };
@@ -269,7 +269,7 @@ public class PythonHooks {
     public PyObject event(final PyString type) {
         return new PyObject() {
             public PyObject __call__(PyObject func) {
-                registerEvent((PyFunction)func, type, new PyString("Normal"));
+                registerEvent(func, type, new PyString("Normal"));
                 return func;
             }
         };

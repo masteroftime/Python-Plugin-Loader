@@ -9,6 +9,9 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.PluginManager;
 import org.python.core.PyFunction;
+import org.python.core.PyMethod;
+import org.python.core.PyObject;
+import org.python.core.PyStaticMethod;
 
 /**
  * Class to wrap python functions so they can be used to handle events
@@ -19,7 +22,7 @@ class PythonEventHandler {
     /**
      * Python function to call
      */
-    final PyFunction handler;
+    final PyObject handler;
 
     /**
      * Event type this handler is listening for
@@ -41,8 +44,15 @@ class PythonEventHandler {
      * @param type Event type this handler is listening for
      * @param priority Priority to register the handler at
      */
-    PythonEventHandler(PyFunction handler, Class<? extends Event> type, EventPriority priority) {
-        this.handler = handler;
+    PythonEventHandler(PyObject handler, Class<? extends Event> type, EventPriority priority) {
+        if(handler.isCallable())
+        {
+            this.handler = handler;
+        }
+        else 
+        {
+            throw new IllegalArgumentException("Tried to register event handler with an invalid type " + handler.getClass().getName());
+        }
         this.type = type;
         this.priority = priority;
     }
