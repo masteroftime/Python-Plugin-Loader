@@ -13,7 +13,7 @@ import org.python.core.*;
  */
 public class PythonCommandHandler implements CommandExecutor {
 
-    private final PyFunction func;
+    private final PyObject func;
     private final String name;
     private int argcount = -1;
 
@@ -21,7 +21,7 @@ public class PythonCommandHandler implements CommandExecutor {
      * @param func function to handle
      * @param name name of command to use when registering
      */
-    public PythonCommandHandler(PyFunction func, String name) {
+    public PythonCommandHandler(PyObject func, String name) {
         this.func = func;
         this.name = name;
     }
