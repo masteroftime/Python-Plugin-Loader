@@ -253,7 +253,6 @@ public class PythonHooks {
     }
 
     public void register(final PyObject instance) {
-    	System.out.println(instance.getClass().toString());
     	for (String deferred : deferredhandlers) {
     		try {
     			final PyObject func = instance.__getattr__(deferred);
