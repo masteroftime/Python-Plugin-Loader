@@ -221,8 +221,11 @@ public class PythonPluginLoader implements PluginLoader {
 
             PythonInterpreter interp = new PythonInterpreter();
 
+            interp.exec("import __builtin__");
             interp.set("hook", hook);
+            interp.exec("__builtin__.hook = hook");
             interp.set("info", description);
+            interp.exec("__builtin__.info = info");
             interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
             interp.exec("import net.lahwran.bukkit.jython.PythonCustomEvent as CustomEvent");
             interp.exec("import sys");
