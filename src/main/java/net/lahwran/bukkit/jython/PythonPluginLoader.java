@@ -221,24 +221,32 @@ public class PythonPluginLoader implements PluginLoader {
 
             PythonInterpreter interp = new PythonInterpreter();
 
-            interp.exec("import __builtin__");
             interp.set("hook", hook);
-            interp.exec("__builtin__.hook = hook");
             interp.set("info", description);
-            interp.exec("__builtin__.info = info");
+            
             interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
             interp.exec("import net.lahwran.bukkit.jython.PythonCustomEvent as CustomEvent");
             interp.exec("import sys");
             interp.exec(
-"class PyStdoutRedirect:\n" +
-"    def write(self, txt):\n" +
-"        if txt.endswith(\"\\n\"):\n" +
-"            sys.__stdout__.write(txt[:-1])\n" +
-"            sys.__stdout__.flush()\n" +
-"        else:\n" +
-"            sys.__stdout__.write(txt)"
-);
+					"class PyStdoutRedirect:\n" +
+					"    def write(self, txt):\n" +
+					"        if txt.endswith(\"\\n\"):\n" +
+					"            sys.__stdout__.write(txt[:-1])\n" +
+					"            sys.__stdout__.flush()\n" +
+					"        else:\n" +
+					"            sys.__stdout__.write(txt)"
+            		);
             interp.exec("sys.stdout = PyStdoutRedirect()");
+            
+            // Decorator Enhancements
+            interp.exec("import __builtin__");
+            interp.exec("__builtin__.hook = hook");
+            interp.exec("__builtin__.info = info");
+            // Initialize metaclass event registration
+            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/meta_decorators.py");
+            interp.execfile(metastream);
+            metastream.close();
+
             interp.execfile(instream);
 
             instream.close();
@@ -271,11 +279,24 @@ public class PythonPluginLoader implements PluginLoader {
                 result = new PythonPlugin();
             else
                 result = (PythonPlugin) pyClass.__call__().__tojava__(PythonPlugin.class);
+            
+            interp.set("pyplugin", result);
+            
+            // Load metaclass decorators from plugin
+            if (pyClass != null) {
+	            interp.exec(
+	            	"for method in MetaRegister.getClassMethods("+pyClass.__getattr__("__name__")+"):\r\n"+
+	            	"    MetaRegister.register(method)\r\n"+
+	            	"for method in MetaRegister.getInstanceMethods(pyplugin):\r\n"+
+	            	"    MetaRegister.register(method)\r\n"
+	            );
+            }
+            
             result.hooks = hook;
             result.interp = interp;
             result.initialize(this, server, description, dataFolder, file);
             result.setDataFile(data);
-            interp.set("pyplugin", result);
+            
         } catch (Throwable t) {
             if (data.shouldAddPathEntry() && pythonpath.__contains__(filepath)) {
                 pythonpath.remove(filepath);

@@ -53,11 +53,6 @@ public class PythonHooks {
     PyFunction onDisable;
 
     /**
-     * List of names of deferred handlers
-     */
-    ArrayList<String> deferredhandlers = new ArrayList<String>();
-    
-    /**
      * List of handlers to register
      */
     ArrayList<PythonEventHandler> eventhandlers = new ArrayList<PythonEventHandler>();
@@ -252,61 +247,6 @@ public class PythonHooks {
         return func;
     }
 
-    public void register(final PyObject instance) {
-    	for (String deferred : deferredhandlers) {
-    		try {
-    			final PyObject func = instance.__getattr__(deferred);
-    			try {
-    				PyObject tuple = func.__getattr__("deferred_event_handler");
-    	    		registerEvent(func, new PyString((String) ((PyTuple)tuple).get(0)), new PyString((String) ((PyTuple)tuple).get(1)));
-    	    		func.__delattr__("deferred_event_handler");
-    			} catch (PyException ex) {
-    				//System.out.println(ex);
-    			}
-    			try {
-    				PyObject tuple = func.__getattr__("deferred_command_handler");
-    				ArrayList<String> aliases = new ArrayList<String>();
-    				if (((PyTuple) tuple).get(3) != null) {
-	    				for (PyObject obj : Arrays.asList(((PyList)((PyTuple)tuple).get(3)).getArray())) {
-	    					aliases.add(obj.toString());
-	    				}
-    				}
-    				registerCommand(func, ((PyTuple)tuple).get(0) == null ? null : ((PyTuple)tuple).get(0).toString(),
-    	    							  ((PyTuple)tuple).get(1) == null ? null : ((PyTuple)tuple).get(1).toString(),
-    									  ((PyTuple)tuple).get(2) == null ? null : ((PyTuple)tuple).get(2).toString(),
-    	    						      ((PyTuple)tuple).get(2) == null ? null : aliases);
-    	    		func.__delattr__("deferred_command_handler");
-    			} catch (PyException ex) {
-    				//System.out.println(ex);
-    			}
-    		} catch (PyException ex) {
-    			//System.out.println(ex);
-    		}
-    		
-    	}
-    }
-    
-    /**
-     * Python decorator. functions decorated with this are called as event handlers
-     * @param type event type
-     * @param priority event priority
-     * @param deferred flag if event is registered statically or manually later on
-     * @return decorated function
-     */
-    public PyObject event(final PyString type, final PyString priority, final PyBoolean deferred) {
-        return new PyObject() {
-            public PyObject __call__(PyObject func) {
-                if (!deferred.getBooleanValue()) {
-                	registerEvent(func, type, priority);
-                } else {
-                	deferredhandlers.add(((PyFunction)func).__name__.toString());
-                	func.__setattr__(new PyString("deferred_event_handler"), new PyTuple(type,priority));
-                }
-                return func;
-            }
-        };
-    }
-    
     /**
      * Python decorator. functions decorated with this are called as event handlers
      * @param type event type
@@ -362,7 +302,6 @@ public class PythonHooks {
             String desc = null;
             String usage = null;
             List<?> aliases = null;
-            Boolean deferred = false; 
             for (int i = kwdelta; i < args.length; i++) {
                 String keyword = keywords[i - kwdelta];
                 if (keyword.equals("desc") || keyword.equals("description"))
@@ -371,10 +310,7 @@ public class PythonHooks {
                     usage = args[i].toString();
                 else if (keyword.equals("aliases"))
                     aliases = new PyList(args[i]);
-                else if (keyword.equals("deferred"))
-                    deferred = ((PyBoolean)args[i]).getBooleanValue();
             }
-            final Boolean finaldeferred = deferred;
             final String name;
             if (kwdelta == 1)
                 name = args[0].toString();
@@ -385,16 +321,7 @@ public class PythonHooks {
             final List<?> finalaliases = aliases;
             return new PyObject() {
                 public PyObject __call__(PyObject func) {
-                	if (finaldeferred) {
-                		deferredhandlers.add(((PyFunction)func).__name__.toString());
-                		PyTuple tuple = new PyTuple(name == null ? Py.None : new PyString(name),
-                									finalusage == null ? Py.None : new PyString(finalusage), 
-    												finaldesc == null ? Py.None : new PyString(finaldesc),
-    												finalaliases == null ? Py.None : new PyList(finalaliases));
-                    	func.__setattr__(new PyString("deferred_command_handler"), tuple);
-                	} else {
-                		registerCommand(func, name, finalusage, finaldesc, finalaliases);
-                	}
+                	registerCommand(func, name, finalusage, finaldesc, finalaliases);
                     return func;
                 }
             };
