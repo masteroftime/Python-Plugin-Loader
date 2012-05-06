@@ -122,7 +122,7 @@ public class PythonPluginLoader implements PluginLoader {
 
     @SuppressWarnings("unchecked")
     private Plugin loadPlugin(File file, boolean ignoreSoftDependencies, PluginDataFile data) throws InvalidPluginException/*, InvalidDescriptionException, UnknownDependencyException*/ {
-        System.out.println("Loading Plugin " + file.getName());
+        System.out.println("[PythonLoader] Loading Plugin " + file.getName());
         PythonPlugin result = null;
         PluginDescriptionFile description = null;
         boolean hasyml = true;

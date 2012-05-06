@@ -31,7 +31,7 @@ public class PythonLoader extends JavaPlugin {
      */
     @Override
     public void onLoad() {
-        System.out.println("PythonLoader: initializing");
+        //System.out.println("PythonLoader: initializing");
         // This must occur as early as possible, and only once.
         PluginManager pm = Bukkit.getServer().getPluginManager();
         boolean needsload = true;
@@ -46,7 +46,7 @@ public class PythonLoader extends JavaPlugin {
         }
 
         if (needsload) {
-            System.out.println("PythonLoader: loading into bukkit");
+            //System.out.println("PythonLoader: loading into bukkit");
             pm.registerInterface(PythonPluginLoader.class);
             //pm.loadPlugins(this.getFile().getParentFile()); //TODO Check weather this reloads java plugins which were already laoded
 
