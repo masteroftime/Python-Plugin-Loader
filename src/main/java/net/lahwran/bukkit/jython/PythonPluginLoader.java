@@ -282,15 +282,11 @@ public class PythonPluginLoader implements PluginLoader {
             
             interp.set("pyplugin", result);
             
-            // Load metaclass decorators from plugin
+            // Load 
             if (pyClass != null) {
-	            interp.exec(
-	            	"for method in MetaRegister.getClassMethods("+pyClass.__getattr__("__name__")+"):\r\n"+
-	            	"    MetaRegister.register(method)\r\n"+
-	            	"for method in MetaRegister.getInstanceMethods(pyplugin):\r\n"+
-	            	"    MetaRegister.register(method)\r\n"
-	            );
-            }
+	            interp.exec("MetaRegister.registerPlugin("+pyClass.__getattr__("__name__")+")");
+	        }
+            interp.exec("MetaRegister.registerStatic()");
             
             result.hooks = hook;
             result.interp = interp;

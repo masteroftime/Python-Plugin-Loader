@@ -1,4 +1,8 @@
 class MetaRegister(type):
+    handlers = []
+    registered = []
+    commands = []
+
     def __new__(cls, name, bases, dct):
         cls = type.__new__(cls, name, bases, dct)
         for method in MetaRegister.getClassMethods(cls):
@@ -42,9 +46,36 @@ class MetaRegister(type):
     def register(func):
         if hasattr(func,'_event_handler'):
             hook.registerEvent(func,*getattr(func,'_event_handler'))
+            try:
+                MetaRegister.registered.append(func.im_func)
+            except:
+                MetaRegister.registered.append(func)
         elif hasattr(func,'_command_handler'):
             kwargs = getattr(func,'_command_handler')
-            hook.registerCommand(func,kwargs['command'],kwargs['usage'],kwargs['desc'],kwargs['aliases'])
+            command = kwargs["command"]
+            if command in MetaRegister.commands:
+                severe("Command '%s' was registered more than once, ignoring further registrations"%command)
+            else:
+                hook.registerCommand(func,command,kwargs['usage'],kwargs['desc'],kwargs['aliases'])
+                try:
+                    MetaRegister.registered.append(func.im_func)
+                except:
+                    MetaRegister.registered.append(func)
+                MetaRegister.commands.append(command)
+
+    @staticmethod
+    def registerPlugin(main):
+        if main is not None:
+            for method in MetaRegister.getClassMethods(main):
+                MetaRegister.register(method)
+            for method in MetaRegister.getInstanceMethods(pyplugin):
+                MetaRegister.register(method)
+
+    @staticmethod
+    def registerStatic():
+        for method in MetaRegister.handlers:
+            if method not in MetaRegister.registered:
+                MetaRegister.register(method)
 
 class Listener(object):
     __metaclass__ = MetaRegister
@@ -73,12 +104,16 @@ def EventHandler(eventtype = None,priority = 'normal'):
                 return func
         try:
             func._event_handler = (eventtype,priority)
+            MetaRegister.handlers.append(func)
         except AttributeError:
             func.__get__(None,int).im_func._event_handler = (eventtype,priority)
+            MetaRegister.handlers.append(func.__get__(None,int).im_func)
         return func
     if callable(eventtype) or str(type(eventtype)) == "<type 'classmethod'>" or str(type(eventtype)) == "<type 'staticmethod'>":
         return wrapper(eventtype,None,priority)
     return functools.partial(wrapper,eventtype=eventtype,priority=priority)
+
+
 
 def CommandHandler(command = None, desc = None, usage = None, aliases = None):
     def wrapper(func, command, desc, usage, aliases):
@@ -89,8 +124,10 @@ def CommandHandler(command = None, desc = None, usage = None, aliases = None):
                 command = func.__get__(None, int).im_func.__name__
         try:
             func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
+            MetaRegister.handlers.append(func)
         except AttributeError:
             func.__get__(None,int).im_func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
+            MetaRegister.handlers.append(func.__get__(None,int).im_func)
         return func
     if callable(command) or str(type(command)) == "<type 'classmethod'>" or str(type(command)) == "<type 'staticmethod'>":
         return wrapper(command, None,desc,usage,aliases)
