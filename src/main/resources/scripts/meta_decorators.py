@@ -1,0 +1,101 @@
+class MetaRegister(type):
+    def __new__(cls, name, bases, dct):
+        cls = type.__new__(cls, name, bases, dct)
+        for method in MetaRegister.getClassMethods(cls):
+            MetaRegister.register(method)
+        return cls
+
+    def __call__(cls, *args, **kwargs):
+        instance = super(MetaRegister, cls).__call__(*args, **kwargs)
+        for method in MetaRegister.getInstanceMethods(instance):
+            MetaRegister.register(method)
+        return instance
+
+    @staticmethod
+    def getClassMethods(cls):
+        methods = []
+        for key,value in cls.__dict__.items():
+            if not hasattr(value,"__class__"):
+                continue
+            if str(type(value)) == "<type 'classmethod'>" or str(type(value)) == "<type 'staticmethod'>":
+                methods.append(getattr(cls,key))
+        return methods
+
+    @staticmethod
+    def getInstanceMethods(instance):
+        methods = []
+        for name in dir(instance):
+            try:
+                attr = getattr(instance,name)
+            except:
+                pass
+            if not hasattr(attr,"__class__"):
+                continue
+
+            if str(type(attr)) == "<type 'instancemethod'>":
+                if hasattr(type(instance),name) and attr == getattr(type(instance),name):
+                    continue
+                methods.append(attr)
+        return methods
+
+    @staticmethod
+    def register(func):
+        if hasattr(func,'_event_handler'):
+            hook.registerEvent(func,*getattr(func,'_event_handler'))
+        elif hasattr(func,'_command_handler'):
+            kwargs = getattr(func,'_command_handler')
+            hook.registerCommand(func,kwargs['command'],kwargs['usage'],kwargs['desc'],kwargs['aliases'])
+
+class Listener(object):
+    __metaclass__ = MetaRegister
+
+import functools
+
+def EventHandler(eventtype = None,priority = 'normal'):
+    def wrapper(func, eventtype, priority):
+        if eventtype is None:
+            try:
+                name = func.__name__
+            except AttributeError:
+                name = func.__get__(None, int).im_func.__name__
+            if name.startswith("on"):
+                name = name[2:]
+            for category in ["block","enchantment","entity","inventory","painting","player","server","vehicle","weather","world"]:
+                temp = "%s.%sEvent"%(category,name)
+                try:
+                    Class.forName("org.bukkit.event."+temp)
+                    eventtype = temp
+                    break
+                except:
+                    pass
+            if eventtype is None:
+                severe("Incorrect @EventHandler usage on %s, could find no matching event"%func)
+                return func
+        try:
+            func._event_handler = (eventtype,priority)
+        except AttributeError:
+            func.__get__(None,int).im_func._event_handler = (eventtype,priority)
+        return func
+    if callable(eventtype) or str(type(eventtype)) == "<type 'classmethod'>" or str(type(eventtype)) == "<type 'staticmethod'>":
+        return wrapper(eventtype,None,priority)
+    return functools.partial(wrapper,eventtype=eventtype,priority=priority)
+
+def CommandHandler(command = None, desc = None, usage = None, aliases = None):
+    def wrapper(func, command, desc, usage, aliases):
+        if command is None:
+            try:
+                command = func.__name__
+            except AttributeError:
+                command = func.__get__(None, int).im_func.__name__
+        try:
+            func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
+        except AttributeError:
+            func.__get__(None,int).im_func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
+        return func
+    if callable(command) or str(type(command)) == "<type 'classmethod'>" or str(type(command)) == "<type 'staticmethod'>":
+        return wrapper(command, None,desc,usage,aliases)
+    return functools.partial(wrapper,command = command,desc=desc,usage=usage,aliases=aliases)
+
+__builtin__.Listener = Listener
+__builtin__.EventHandler = EventHandler
+__builtin__.CommandHandler = CommandHandler
