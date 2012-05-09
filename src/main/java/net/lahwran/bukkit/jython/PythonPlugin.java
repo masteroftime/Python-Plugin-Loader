@@ -52,7 +52,7 @@ private boolean isEnabled = false;
     private File configFile = null;
     private PluginLogger logger = null;
     private PluginDataFile dataFile = null; //data file used for retrieving resources
-
+    
     /**
      * Listener to handle all PythonHooks events for this plugin.
      */

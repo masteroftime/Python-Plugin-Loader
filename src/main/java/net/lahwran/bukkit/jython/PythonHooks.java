@@ -4,6 +4,7 @@
 package net.lahwran.bukkit.jython;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.python.core.Py;
+import org.python.core.PyBoolean;
 import org.python.core.PyBuiltinClassMethodNarrow;
 import org.python.core.PyBuiltinMethod;
 import org.python.core.PyClassMethod;
@@ -24,6 +26,7 @@ import org.python.core.PyFunction;
 import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
+import org.python.core.PyTuple;
 import org.python.core.PyType;
 
 import com.master.bukkit.python.ReflectionHelper;
@@ -183,7 +186,7 @@ public class PythonHooks {
      * @param func function to set as handler
      * @param name name to register
      */
-    public void registerCommand(PyFunction func, String name) {
+    public void registerCommand(PyObject func, String name) {
         registerCommand(func, name, null, null, null);
     }
 
@@ -191,7 +194,7 @@ public class PythonHooks {
      * Register a command with no extra metadata
      * @param func function to set as handler; function's name is used as command name
      */
-    public void registerCommand(PyFunction func) {
+    public void registerCommand(PyObject func) {
         registerCommand(func, null);
     }
 
@@ -204,11 +207,11 @@ public class PythonHooks {
      * @param desc metadata
      * @param aliases metadata
      */
-    public void registerCommand(PyFunction func, String name, String usage, String desc, List<?> aliases) {
+    public void registerCommand(PyObject func, String name, String usage, String desc, List<?> aliases) {
         checkFrozen();
         String finalname = name;
         if (finalname == null)
-            finalname = func.__name__;
+            finalname = ((PyFunction)func).__name__;
         addCommandInfo(finalname, usage, desc, aliases);
         PythonCommandHandler handler = new PythonCommandHandler(func, finalname);
         commandhandlers.add(handler);
@@ -243,7 +246,6 @@ public class PythonHooks {
         onDisable = func;
         return func;
     }
-
 
     /**
      * Python decorator. functions decorated with this are called as event handlers
@@ -319,7 +321,7 @@ public class PythonHooks {
             final List<?> finalaliases = aliases;
             return new PyObject() {
                 public PyObject __call__(PyObject func) {
-                    registerCommand((PyFunction) func, name, finalusage, finaldesc, finalaliases);
+                	registerCommand(func, name, finalusage, finaldesc, finalaliases);
                     return func;
                 }
             };
