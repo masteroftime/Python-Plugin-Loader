@@ -82,7 +82,8 @@ class Listener(object):
 
 import functools
 
-def EventHandler(eventtype = None,priority = 'normal'):
+def EventHandler(argument = None,priority = 'normal'):
+    PRIORITIES = ["highest","high","normal","low","lowest","monitor"]
     def wrapper(func, eventtype, priority):
         if eventtype is None:
             try:
@@ -109,11 +110,11 @@ def EventHandler(eventtype = None,priority = 'normal'):
             func.__get__(None,int).im_func._event_handler = (eventtype,priority)
             MetaRegister.handlers.append(func.__get__(None,int).im_func)
         return func
-    if callable(eventtype) or str(type(eventtype)) == "<type 'classmethod'>" or str(type(eventtype)) == "<type 'staticmethod'>":
-        return wrapper(eventtype,None,priority)
-    return functools.partial(wrapper,eventtype=eventtype,priority=priority)
-
-
+    if callable(argument) or str(type(argument)) == "<type 'classmethod'>" or str(type(argument)) == "<type 'staticmethod'>":
+        return wrapper(argument,None,priority)
+    if argument.lower() in PRIORITIES:
+        argument,priority = priority if priority.lower() not in PRIORITIES else None,argument
+    return functools.partial(wrapper,eventtype=argument,priority=priority)
 
 def CommandHandler(command = None, desc = None, usage = None, aliases = None):
     def wrapper(func, command, desc, usage, aliases):

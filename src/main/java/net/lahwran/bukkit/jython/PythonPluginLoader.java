@@ -242,10 +242,18 @@ public class PythonPluginLoader implements PluginLoader {
             interp.exec("import __builtin__");
             interp.exec("__builtin__.hook = hook");
             interp.exec("__builtin__.info = info");
-            // Initialize metaclass event registration
-            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/meta_decorators.py");
-            interp.execfile(metastream);
-            metastream.close();
+            
+            // Hardcoded for now, may be worth thinking about generalizing it as sort of "addons" for the PythonPluginLoader
+            // Could be used to extend the capabilities of python plugins the same way the metaclass decorators do, without requiring any changes to the PythonPluginLoader itself
+            String[] pre_plugin_scripts = {"meta_decorators.py"};
+            String[] post_plugin_scripts = {"meta_loader.py"};
+            
+            // Run scripts designed to be run before plugin creation
+            for (String script : pre_plugin_scripts) {
+	            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/"+script);
+	            interp.execfile(metastream);
+	            metastream.close();
+            }
 
             interp.execfile(instream);
 
@@ -282,14 +290,16 @@ public class PythonPluginLoader implements PluginLoader {
             
             interp.set("pyplugin", result);
             
-            // Load 
-            if (pyClass != null) {
-	            interp.exec("MetaRegister.registerPlugin("+pyClass.__getattr__("__name__")+")");
-	        }
-            interp.exec("MetaRegister.registerStatic()");
-            
             result.hooks = hook;
             result.interp = interp;
+            
+            // Run scripts designed to be run after plugin creation
+            for (String script : post_plugin_scripts) {
+	            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/"+script);
+	            interp.execfile(metastream);
+	            metastream.close();
+            }
+            
             result.initialize(this, server, description, dataFolder, file);
             result.setDataFile(data);
             
