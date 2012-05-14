@@ -223,19 +223,38 @@ public class PythonPluginLoader implements PluginLoader {
 
             interp.set("hook", hook);
             interp.set("info", description);
+            
             interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
             interp.exec("import net.lahwran.bukkit.jython.PythonCustomEvent as CustomEvent");
             interp.exec("import sys");
             interp.exec(
-"class PyStdoutRedirect:\n" +
-"    def write(self, txt):\n" +
-"        if txt.endswith(\"\\n\"):\n" +
-"            sys.__stdout__.write(txt[:-1])\n" +
-"            sys.__stdout__.flush()\n" +
-"        else:\n" +
-"            sys.__stdout__.write(txt)"
-);
+					"class PyStdoutRedirect:\n" +
+					"    def write(self, txt):\n" +
+					"        if txt.endswith(\"\\n\"):\n" +
+					"            sys.__stdout__.write(txt[:-1])\n" +
+					"            sys.__stdout__.flush()\n" +
+					"        else:\n" +
+					"            sys.__stdout__.write(txt)"
+            		);
             interp.exec("sys.stdout = PyStdoutRedirect()");
+            
+            // Decorator Enhancements
+            interp.exec("import __builtin__");
+            interp.exec("__builtin__.hook = hook");
+            interp.exec("__builtin__.info = info");
+            
+            // Hardcoded for now, may be worth thinking about generalizing it as sort of "addons" for the PythonPluginLoader
+            // Could be used to extend the capabilities of python plugins the same way the metaclass decorators do, without requiring any changes to the PythonPluginLoader itself
+            String[] pre_plugin_scripts = {"meta_decorators.py"};
+            String[] post_plugin_scripts = {"meta_loader.py"};
+            
+            // Run scripts designed to be run before plugin creation
+            for (String script : pre_plugin_scripts) {
+	            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/"+script);
+	            interp.execfile(metastream);
+	            metastream.close();
+            }
+
             interp.execfile(instream);
 
             instream.close();
@@ -268,11 +287,22 @@ public class PythonPluginLoader implements PluginLoader {
                 result = new PythonPlugin();
             else
                 result = (PythonPlugin) pyClass.__call__().__tojava__(PythonPlugin.class);
+            
+            interp.set("pyplugin", result);
+            
             result.hooks = hook;
             result.interp = interp;
+            
+            // Run scripts designed to be run after plugin creation
+            for (String script : post_plugin_scripts) {
+	            InputStream metastream = this.getClass().getClassLoader().getResourceAsStream("scripts/"+script);
+	            interp.execfile(metastream);
+	            metastream.close();
+            }
+            
             result.initialize(this, server, description, dataFolder, file);
             result.setDataFile(data);
-            interp.set("pyplugin", result);
+            
         } catch (Throwable t) {
             if (data.shouldAddPathEntry() && pythonpath.__contains__(filepath)) {
                 pythonpath.remove(filepath);

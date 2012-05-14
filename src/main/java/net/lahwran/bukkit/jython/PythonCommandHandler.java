@@ -13,7 +13,7 @@ import org.python.core.*;
  */
 public class PythonCommandHandler implements CommandExecutor {
 
-    private final PyFunction func;
+    private final PyObject func;
     private final String name;
     private int argcount = -1;
 
@@ -21,7 +21,7 @@ public class PythonCommandHandler implements CommandExecutor {
      * @param func function to handle
      * @param name name of command to use when registering
      */
-    public PythonCommandHandler(PyFunction func, String name) {
+    public PythonCommandHandler(PyObject func, String name) {
         this.func = func;
         this.name = name;
     }
@@ -58,10 +58,10 @@ public class PythonCommandHandler implements CommandExecutor {
                 argcount = 4;
             } catch (PyException e) {
               //this could goof up someone ... they'll probably yell at us and eventually read this code ... fuck them
-                if (e.type == Py.TypeError && e.value.toString().endsWith("takes exactly 3 arguments (4 given)")) {
+                if (e.type == Py.TypeError && (e.value.toString().endsWith("takes exactly 3 arguments (4 given)") || e.value.toString().endsWith("takes exactly 4 arguments (5 given)"))) {
                     result = call(3, sender, command, label, args);
                     argcount = 3;
-                } else if (e.type == Py.TypeError && e.value.toString().endsWith("takes exactly 2 arguments (4 given)")) {
+                } else if (e.type == Py.TypeError && (e.value.toString().endsWith("takes exactly 2 arguments (4 given)") || e.value.toString().endsWith("takes exactly 3 arguments (5 given)"))) {
                     result = call(2, sender, command, label, args);
                     argcount = 2;
                 } else {
