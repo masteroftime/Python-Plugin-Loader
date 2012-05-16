@@ -54,7 +54,7 @@ class MetaRegister(type):
             kwargs = getattr(func,'_command_handler')
             command = kwargs["command"]
             if command in MetaRegister.commands:
-                severe("Command '%s' was registered more than once, ignoring further registrations"%command)
+                log.severe("Command '%s' was registered more than once, ignoring further registrations"%command)
             else:
                 hook.registerCommand(func,command,kwargs['usage'],kwargs['desc'],kwargs['aliases'])
                 try:
@@ -101,7 +101,7 @@ def EventHandler(argument = None,priority = 'normal'):
                 except:
                     pass
             if eventtype is None:
-                severe("Incorrect @EventHandler usage on %s, could find no matching event"%func)
+                log.severe("Incorrect @EventHandler usage on %s, could find no matching event"%func)
                 return func
         try:
             func._event_handler = (eventtype,priority)
