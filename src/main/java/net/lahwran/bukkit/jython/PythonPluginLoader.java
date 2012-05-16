@@ -224,20 +224,6 @@ public class PythonPluginLoader implements PluginLoader {
             interp.set("hook", hook);
             interp.set("info", description);
             
-            interp.exec("import net.lahwran.bukkit.jython.PythonPlugin as PythonPlugin");
-            interp.exec("import net.lahwran.bukkit.jython.PythonCustomEvent as CustomEvent");
-            interp.exec("import sys");
-            interp.exec(
-					"class PyStdoutRedirect:\n" +
-					"    def write(self, txt):\n" +
-					"        if txt.endswith(\"\\n\"):\n" +
-					"            sys.__stdout__.write(txt[:-1])\n" +
-					"            sys.__stdout__.flush()\n" +
-					"        else:\n" +
-					"            sys.__stdout__.write(txt)"
-            		);
-            interp.exec("sys.stdout = PyStdoutRedirect()");
-            
             // Decorator Enhancements
             interp.exec("import __builtin__");
             interp.exec("__builtin__.hook = hook");
@@ -245,7 +231,7 @@ public class PythonPluginLoader implements PluginLoader {
             
             // Hardcoded for now, may be worth thinking about generalizing it as sort of "addons" for the PythonPluginLoader
             // Could be used to extend the capabilities of python plugins the same way the metaclass decorators do, without requiring any changes to the PythonPluginLoader itself
-            String[] pre_plugin_scripts = {"meta_decorators.py"};
+            String[] pre_plugin_scripts = {"imports.py", "meta_decorators.py"};
             String[] post_plugin_scripts = {"meta_loader.py"};
             
             // Run scripts designed to be run before plugin creation
