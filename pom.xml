@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.masteroftime</groupId>
     <artifactId>PyPluginLoader</artifactId>
-    <version>0.3.2</version>
+    <version>3.3</version>
     <name>PyPluginLoader</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
