@@ -104,7 +104,7 @@
         <dependency>
           <groupId>org.bukkit</groupId>
           <artifactId>bukkit</artifactId>
-          <version>1.2.3-R0.2</version>
+          <version>1.2.5-R2.0</version>
         </dependency>
     </dependencies>
 </project>
