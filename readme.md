@@ -33,7 +33,7 @@ Using plugins
 1. Stick the plugin.pyp in your bukkit/plugins/ dir
 2. [Re-]Start bukkit
 
-writing plugins
+Writing plugins
 ===============
 
 Writing plugins with PythonLoader is fairly easy. There are two apis, both
@@ -101,9 +101,9 @@ your main.py:
     
     @hook.command
     def example(sender, command, label, args):
-        sender.sendMessage("you just used comand /example!")
+        sender.sendMessage("you just used command /example!")
 
-See the "Sample plugin using decorator api" section for a more detailed example
+See the "Sample plugin using decorator api" section for a more detailed example.
 
 
 API Details
