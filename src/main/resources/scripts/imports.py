@@ -6,7 +6,7 @@ from java.lang import Class
 from java.util.logging import Level
 from java.io import File
 
-class PyStdoutRedirect:
+class PyStdoutRedirect(object):
     def write(self, txt):
         if txt.endswith("\n"):
             sys.__stdout__.write(txt[:-1])
@@ -18,18 +18,20 @@ sys.stdout = PyStdoutRedirect()
 
 server = bukkit.Bukkit.getServer()
 
-class log:
+class Log(object):
     prefix = ""
     logger = server.getLogger()
 
     @staticmethod
     def info(*text):
-        log.logger.log(Level.INFO,log.prefix+" ".join(map(unicode,text)))
+        Log.logger.log(Level.INFO,Log.prefix+" ".join(map(unicode,text)))
 
     @staticmethod
     def severe(*text):
-        log.logger.log(Level.SEVERE,log.prefix+" ".join(map(unicode,text)))
+        Log.logger.log(Level.SEVERE,Log.prefix+" ".join(map(unicode,text)))
 
     @staticmethod
     def msg(player,*text):
-        player.sendMessage(log.prefix+" ".join(map(unicode,text)))
+        player.sendMessage(Log.prefix+" ".join(map(unicode,text)))
+
+log = Log
