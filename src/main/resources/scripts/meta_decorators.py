@@ -56,7 +56,7 @@ class MetaRegister(type):
             if command in MetaRegister.commands:
                 log.severe("Command '%s' was registered more than once, ignoring further registrations"%command)
             else:
-                hook.registerCommand(func,command,kwargs['usage'],kwargs['desc'],kwargs['aliases'])
+                hook.registerCommand(func,command,kwargs['usage'],kwargs['desc'],kwargs['aliases'],kwargs['onTab'])
                 try:
                     MetaRegister.registered.append(func.im_func)
                 except:
@@ -116,23 +116,23 @@ def EventHandler(argument = None,priority = 'normal'):
         argument,priority = priority if priority.lower() not in PRIORITIES else None,argument
     return functools.partial(wrapper,eventtype=argument,priority=priority)
 
-def CommandHandler(command = None, desc = None, usage = None, aliases = None):
-    def wrapper(func, command, desc, usage, aliases):
+def CommandHandler(command = None, desc = None, usage = None, aliases = None, onTab=None):
+    def wrapper(func, command, desc, usage, aliases, onTab):
         if command is None:
             try:
                 command = func.__name__
             except AttributeError:
                 command = func.__get__(None, int).im_func.__name__
         try:
-            func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
+            func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases,'onTab':onTab}
             MetaRegister.handlers.append(func)
         except AttributeError:
             func.__get__(None,int).im_func._command_handler = {'command':command,'desc':desc,'usage':usage,'aliases':aliases}
             MetaRegister.handlers.append(func.__get__(None,int).im_func)
         return func
     if callable(command) or str(type(command)) == "<type 'classmethod'>" or str(type(command)) == "<type 'staticmethod'>":
-        return wrapper(command, None,desc,usage,aliases)
-    return functools.partial(wrapper,command = command,desc=desc,usage=usage,aliases=aliases)
+        return wrapper(command, None,desc,usage,aliases,onTab)
+    return functools.partial(wrapper,command = command,desc=desc,usage=usage,aliases=aliases,onTab=onTab)
 
 __builtin__.Listener = Listener
 __builtin__.EventHandler = EventHandler

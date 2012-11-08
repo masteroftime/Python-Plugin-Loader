@@ -187,7 +187,7 @@ public class PythonHooks {
      * @param name name to register
      */
     public void registerCommand(PyObject func, String name) {
-        registerCommand(func, name, null, null, null);
+        registerCommand(func, name, null, null, null, null);
     }
 
     /**
@@ -207,13 +207,13 @@ public class PythonHooks {
      * @param desc metadata
      * @param aliases metadata
      */
-    public void registerCommand(PyObject func, String name, String usage, String desc, List<?> aliases) {
+    public void registerCommand(PyObject func, String name, String usage, String desc, List<?> aliases, PyObject tabComplete) {
         checkFrozen();
         String finalname = name;
         if (finalname == null)
             finalname = ((PyFunction)func).__name__;
         addCommandInfo(finalname, usage, desc, aliases);
-        PythonCommandHandler handler = new PythonCommandHandler(func, finalname);
+        PythonCommandHandler handler = new PythonCommandHandler(func, finalname, tabComplete);
         commandhandlers.add(handler);
     }
 
@@ -280,7 +280,7 @@ public class PythonHooks {
     /**
      * command decorator. approximately equivalent python:
      * <pre>
-     * def command(arg1, desc=None, usage=None, aliases=None):
+     * def command(arg1, desc=None, usage=None, aliases=None, tabComplete=None):
      *     if isfunc(arg1):
      *         registerFunc(arg1, arg1.func_name)
      *     else:
@@ -302,6 +302,7 @@ public class PythonHooks {
             String desc = null;
             String usage = null;
             List<?> aliases = null;
+            PyObject tabComplete = null;
             for (int i = kwdelta; i < args.length; i++) {
                 String keyword = keywords[i - kwdelta];
                 if (keyword.equals("desc") || keyword.equals("description"))
@@ -310,6 +311,8 @@ public class PythonHooks {
                     usage = args[i].toString();
                 else if (keyword.equals("aliases"))
                     aliases = new PyList(args[i]);
+                else if (keyword.equals("onTab"))
+                    tabComplete = args[i];
             }
             final String name;
             if (kwdelta == 1)
@@ -319,9 +322,10 @@ public class PythonHooks {
             final String finaldesc = desc;
             final String finalusage = usage;
             final List<?> finalaliases = aliases;
+            final PyObject finaltabcomplete = tabComplete;
             return new PyObject() {
                 public PyObject __call__(PyObject func) {
-                	registerCommand(func, name, finalusage, finaldesc, finalaliases);
+                    registerCommand(func, name, finalusage, finaldesc, finalaliases, finaltabcomplete);
                     return func;
                 }
             };

@@ -406,4 +406,10 @@ private boolean isEnabled = false;
         // TODO Auto-generated method stub
         return null;
     }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd,
+            String alias, String[] args) {
+        return null;
+    }
 }
