@@ -311,7 +311,7 @@ public class PythonHooks {
                     usage = args[i].toString();
                 else if (keyword.equals("aliases"))
                     aliases = new PyList(args[i]);
-                else if (keyword.equals("onTab"))
+                else if (keyword.equals("onTabComplete"))
                     tabComplete = args[i];
             }
             final String name;
