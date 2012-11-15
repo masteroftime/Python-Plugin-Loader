@@ -68,18 +68,17 @@ public class PythonCommandHandler implements CommandExecutor, TabCompleter {
     }
 
     private ArrayList<String> toJavaStringList(PyObject pyList) {
-        if(pyList.isSequenceType()) {
+        if(pyList.getType().equals(PyString.TYPE)) {
+            ArrayList<String> result = new ArrayList<String>(1);
+            result.add(pyList.asString());
+            return result;
+        } else if(pyList.isSequenceType()) {
             ArrayList<String> result = new ArrayList<String>();
             for(PyObject o : pyList.asIterable()) {
                 result.add(o.asString());
             }
             return result;
-        } else if(pyList.getType().equals(PyString.TYPE)) {
-            ArrayList<String> result = new ArrayList<String>(1);
-            result.add(pyList.asString());
-            return result;
-        }
-        else if(pyList.equals(Py.None) || pyList.equals(null)) {
+        } else if(pyList.equals(Py.None) || pyList.equals(null)) {
             return null;
         }
         else throw new IllegalArgumentException("Tab Completer function must return a list of strings a string or null");
