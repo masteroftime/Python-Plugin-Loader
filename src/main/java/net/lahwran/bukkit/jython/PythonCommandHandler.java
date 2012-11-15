@@ -79,6 +79,9 @@ public class PythonCommandHandler implements CommandExecutor, TabCompleter {
             result.add(pyList.asString());
             return result;
         }
+        else if(pyList.equals(Py.None) || pyList.equals(null)) {
+            return null;
+        }
         else throw new IllegalArgumentException("Tab Completer function must return a list of strings a string or null");
     }
 
