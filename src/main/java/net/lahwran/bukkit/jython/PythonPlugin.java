@@ -404,7 +404,7 @@ private boolean isEnabled = false;
     @Override
     public String getName() {
         // TODO Auto-generated method stub
-        return null;
+        return "PythonPlugin";
     }
 
     @Override
