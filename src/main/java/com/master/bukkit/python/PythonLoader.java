@@ -81,7 +81,7 @@ public class PythonLoader extends JavaPlugin {
                 dl_file.renameTo(new File("lib/jython.jar"));
                 getServer().getLogger().log(Level.INFO, "Download successful!");
             } catch (IOException e) {
-                getServer().getLogger().log(Level.SEVERE, "Error while donwloading jython.jar, loading of python plugins will fail! Please download jython from https://github.com/downloads/masteroftime/Python-Plugin-Loader/jython.jar and place it in the lib folder");
+                getServer().getLogger().log(Level.SEVERE, "Error while downloading jython.jar, loading of python plugins will fail! Please download jython from https://github.com/downloads/masteroftime/Python-Plugin-Loader/jython.jar and place it in the lib folder");
                 e.printStackTrace();
             }
         }
