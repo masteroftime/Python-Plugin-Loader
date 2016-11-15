@@ -23,7 +23,7 @@ Running
 0. Ensure you are using a bukkit build that uses
    https://github.com/Bukkit/Bukkit/pull/335 - otherwise, only some of your
    plugins will work.
-1. Put PyPluginLoader-0.2.jar in your bukkit/plugins/ dir
+1. Put PyPluginLoader-0.3.6.jar in your bukkit/plugins/ dir
 2. Put jython.jar in your bukkit/lib/ dir
 3. [Re-]Start bukkit
 
@@ -70,6 +70,9 @@ your plugin.py:
             print "enabled!"
         def onDisable():
             print "disabled!"
+        def onLoaded():
+            print "load complete!"
+
 
 Decorator API
 -------------
@@ -94,7 +97,11 @@ your main.py:
     @hook.disable
     def ondisable():
         print "main.py disabled"
-    
+
+    @hook.load_complete
+    def onloadcomplete():
+        print "main.py loading complete"
+
     @hook.event("player.PlayerJoinEvent", "normal")
     def playerjoin(event):
         event.getPlayer().sendMessage("Hello from python")
@@ -200,6 +207,30 @@ Summary of fields:
    plugin file.
 - "version" - version of plugin. shown in errors, and other plugins can access it
 - "website" - mainly for people reading the code
+
+
+Plugin resources
+----------------
+
+Some plugins may contain resource files. Unlike the code these files maybe text, images
+or other binary files. When this is the case you need some way to access resources packed
+within a plugin. Plugin object accessible from python interpreter globals has a special
+method to obtain resource files data from within the plugin.
+
+    def init_plugin():
+        resource_data = pyplugin.getPyResource(resource_filename)
+        with resource_data:
+            for record in resource_data:
+                ...
+
+getPyResource() method of the pyplugin exposed object take a resource file path local to
+plugin container (zip archive or folder) and returns python file object available for
+reading. That file object needs to be closed after. Context manager may be used for this
+purpose.
+Resource files may only be accessed before plugin loaded will close the plugin file
+(in case of zip for example); best place for this is a load_complete hook handler
+which is called right after pyplugin object instantiated and before plugin file will be
+closed by plugin loader.
 
 
 Decorator api
@@ -346,6 +377,21 @@ examples:
     def onDisable():
         print "disabled!"
 
+Initialization
+**************
+
+Function decorated with hook.load_complete is called when your
+plugin is first loaded and immediately after plugin object is instantiated.
+this functionality is intended to provide you a point when a once per server run
+plugin initialization routine should be called.
+
+examples:
+
+    @hook.load_complete
+    def onLoadComplete():
+        doInit(pyplugin)
+        print "initialization complete!"
+
 Accessing the plugin object
 ***************************
 
@@ -386,13 +432,17 @@ main.py
     @hook.disable
     def onDisable():
         print "sample plugin disabled"
+
+    @hook.load_complete
+    def onLoadComplete():
+        print "sample plugin loading complete"
     
     @hook.event("player_join", "normal")
     def onPlayerJoin(event):
         msg = "welcome from the sample plugin, %s" % event.getPlayer().getName()
         print msg
         event.getPlayer().sendMessage(msg)
-    
+
     @hook.command("samplecommand", usage="/<command>", 
                     desc="send a sample message")
     def onSampleCommand(sender, command, label, args):
@@ -437,7 +487,10 @@ plugin.py
         
         def onDisable(self):
             print "sample plugin disabled"
-        
+
+        def onLoaded(self):
+            print "sample plugin load complete"
+
         def onCommand(self, sender, command, label, args):
             msg = "sample plugin command"
             print msg
