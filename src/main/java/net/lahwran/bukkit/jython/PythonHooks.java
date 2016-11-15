@@ -53,6 +53,11 @@ public class PythonHooks {
     PyFunction onDisable;
 
     /**
+     * Function to call when plugin is initialized
+     */
+    PyFunction onLoaded;
+
+    /**
      * List of handlers to register
      */
     ArrayList<PythonEventHandler> eventhandlers = new ArrayList<PythonEventHandler>();
@@ -244,6 +249,21 @@ public class PythonHooks {
      */
     public PyFunction disable(PyFunction func) {
         onDisable = func;
+        return func;
+    }
+
+    /**
+     * Python decorator. functions decorated with this are called on load complete
+     * <pre>
+     * @hook.load_complete
+     * def loaded():
+     *     print "load complete!"
+     * </pre>
+     * @param func function to decorate
+     * @return decorated function
+     */
+    public PyFunction load_complete(PyFunction func) {
+        onLoaded = func;
         return func;
     }
 
