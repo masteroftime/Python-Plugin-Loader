@@ -27,6 +27,9 @@ import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.PluginLogger;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.python.util.PythonInterpreter;
+import org.python.core.util.FileUtil;
+import org.python.core.PyFile;
+import org.python.core.PyString;
 
 import com.avaje.ebean.EbeanServer;
 import com.avaje.ebeaninternal.api.SpiEbeanServer;
@@ -274,6 +277,11 @@ private boolean isEnabled = false;
      */
     public void onLoad() {}
 
+    public void onLoaded() {
+        if (hooks.onLoaded != null)
+            hooks.onLoaded.__call__();
+    }
+
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
         getServer().getLogger().severe("Plugin " + getDescription().getFullName() + " does not contain any generators that may be used in the default world!");
         return null;
@@ -329,6 +337,19 @@ private boolean isEnabled = false;
 
         try {
             return dataFile.getStream(filename);
+        } catch (IOException e) {
+            //just return null and do not print stack trace as JavaPlugin's getResource does not print it either
+            return null;
+        }
+    }
+
+    public PyFile getPyResource(PyString filename) {
+        if(filename == null) {
+            throw new IllegalArgumentException("Filename cannot be null");
+        }
+
+        try {
+            return FileUtil.wrap(dataFile.getStream(filename.asString()));
         } catch (IOException e) {
             //just return null and do not print stack trace as JavaPlugin's getResource does not print it either
             return null;

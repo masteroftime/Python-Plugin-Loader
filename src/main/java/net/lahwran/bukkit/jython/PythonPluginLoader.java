@@ -171,10 +171,7 @@ public class PythonPluginLoader implements PluginLoader {
         ArrayList<String> depend;
 
         try {
-            depend = (ArrayList<String>) description.getDepend();
-            if (depend == null) {
-                depend = new ArrayList<String>();
-            }
+            depend = new ArrayList<String>(description.getDepend());
         } catch (ClassCastException ex) {
             throw new InvalidPluginException(ex);
         }
@@ -288,6 +285,8 @@ public class PythonPluginLoader implements PluginLoader {
             
             result.initialize(this, server, description, dataFolder, file);
             result.setDataFile(data);
+
+            result.onLoaded();
             
         } catch (Throwable t) {
             if (data.shouldAddPathEntry() && pythonpath.__contains__(filepath)) {

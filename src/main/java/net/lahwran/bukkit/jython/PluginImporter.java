@@ -10,7 +10,7 @@ import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
 import org.python.core.PyTuple;
-import org.python.modules.imp;
+import org.python.modules._imp;
 
 /**
  * Unfinished importer to separate plugins into their own namespaces, possibly also import
@@ -61,7 +61,7 @@ public class PluginImporter extends PyObject {
             PyString pypath = new PyString(pluginpath.getAbsolutePath());
             PyObject[] elements = new PyObject[] {pypath};
             PyList paths = new PyList(elements);
-            PyObject result = imp.find_module(subname, paths);
+            PyObject result = _imp.find_module(subname, paths);
             if (result != null) {
                 PyTuple info = (PyTuple) result;
 
